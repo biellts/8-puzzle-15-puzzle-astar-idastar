@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>8-puzzle &amp; 15-puzzle</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ── VARIÁVEIS ── */
+:root{
+  --bg:#0b0b10;--card:#13131e;--card2:#1c1c2e;
+  --yellow:#f0e040;--green:#4ade80;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;
+  --muted:#2e2e44;--border:#222238;--text:#f0f0ff;--dim:#c0c0e0;
+  --base:1rem;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory;font-size:clamp(20px,2.8vh,31px);}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:var(--base);overflow-x:hidden;}
+
+/* ── NAVEGAÇÃO ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:14px 52px;background:rgba(11,11,16,.95);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);}
+.nb{font-family:'Space Mono',monospace;font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;color:var(--yellow);}
+.dots{display:flex;gap:7px;flex-wrap:wrap;max-width:320px;}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);cursor:pointer;transition:all .2s;}
+.dot.on{background:var(--yellow);transform:scale(1.5);}
+
+/* ── SLIDE BASE ── */
+.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:72px 4vw 40px;position:relative;border-bottom:1px solid var(--border);overflow:hidden;}
+.gbg{position:absolute;inset:0;z-index:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:.15;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black,transparent);}
+.slide>*{position:relative;z-index:1;}
+.sn{position:absolute;bottom:28px;right:48px;font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted);letter-spacing:.18em;}
+
+/* ── SUBTÍTULO DE SEÇÃO ── */
+.tag{font-family:'Space Mono',monospace;font-size:.92rem;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;text-align:center;}
+
+/* ── TÍTULO DO SLIDE — ≥ 26pt ── */
+.stitle{font-family:'Outfit',sans-serif;font-size:clamp(46px,6.2vh,70px);font-weight:800;color:var(--yellow);margin-bottom:18px;text-align:center;letter-spacing:-.01em;line-height:1.15;}
+
+/* ── CAPA ── */
+.cover-bg{background:radial-gradient(ellipse 68% 52% at 50% 44%,#16163a,var(--bg) 72%);}
+.ch1{font-family:'Outfit',sans-serif;font-size:clamp(5.5rem,14vw,10rem);font-weight:900;line-height:.86;color:var(--yellow);text-align:center;margin-bottom:18px;letter-spacing:-.03em;}
+.csub{font-family:'DM Sans',sans-serif;font-size:1.4rem;color:var(--dim);margin-bottom:50px;text-align:center;}
+.cpill{display:inline-flex;gap:32px;background:var(--card);border:1px solid var(--border);border-radius:100px;padding:13px 36px;font-family:'Space Mono',monospace;font-size:.88rem;color:var(--dim);}
+.cpill span{color:var(--text);}
+.cline{position:absolute;bottom:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,var(--yellow),transparent);}
+
+/* ── CARD COM BULLET — corpo ≥ 22pt ── */
+.bcard{display:flex;align-items:flex-start;gap:16px;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:13px 20px;}
+.bicon{font-size:1.4rem;min-width:26px;margin-top:2px;flex-shrink:0;}
+.btext{font-size:1.15rem;line-height:1.5;color:var(--text);}
+
+/* ── LISTA DE REQUISITOS ── */
+.rlist{display:flex;flex-direction:column;gap:14px;width:100%;max-width:min(1000px,90vw);}
+.req{display:flex;align-items:center;gap:22px;background:var(--card);border:1px solid var(--border);border-left:5px solid var(--yellow);padding:16px 24px;border-radius:7px;}
+.rn{font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:900;color:var(--yellow);min-width:38px;}
+.rt{font-size:1.25rem;line-height:1.55;}
+
+/* ── DUAS COLUNAS ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:min(1440px,93vw);}
+.col-card{background:var(--card);border:1px solid var(--border);border-top:4px solid;padding:28px 26px;border-radius:7px;}
+.col-title{font-family:'Outfit',sans-serif;font-size:1.25rem;font-weight:700;margin-bottom:12px;}
+.col-list{list-style:none;display:flex;flex-direction:column;gap:14px;}
+.col-list li{font-size:1.1rem;line-height:1.5;color:var(--dim);padding-left:20px;position:relative;}
+.col-list li::before{content:'—';position:absolute;left:0;color:var(--muted);}
+.col-list li strong{color:var(--text);}
+
+/* ── DESTAQUE CENTRAL ── */
+.hbox{background:rgba(240,224,64,.08);border:2px solid rgba(240,224,64,.35);border-radius:7px;padding:24px 32px;}
+
+/* ── GRELHA DE ESTATÍSTICAS ── */
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:min(1300px,93vw);margin-bottom:20px;}
+.sbox{background:var(--card);border:1px solid var(--border);border-radius:7px;padding:18px 16px;text-align:center;}
+.sv{font-family:'Outfit',sans-serif;font-size:2.7rem;font-weight:800;color:var(--yellow);}
+.sd{font-size:1.1rem;color:var(--dim);margin-top:8px;line-height:1.4;}
+
+/* ── PUZZLE ── */
+.puzzle{display:inline-grid;gap:5px;background:var(--border);border:2px solid var(--muted);border-radius:9px;padding:5px;}
+.puzzle.g3{grid-template-columns:repeat(3,78px);}
+.puzzle.g4{grid-template-columns:repeat(4,60px);}
+.ptile{display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:700;border-radius:6px;}
+.puzzle.g3 .ptile{height:78px;font-size:1.75rem;}
+.puzzle.g4 .ptile{height:60px;font-size:1.3rem;}
+.ptile.num{background:var(--card2);color:var(--text);border:1px solid var(--border);}
+.ptile.blank{background:rgba(11,11,16,.6);}
+.ptile.moved{background:rgba(96,165,250,.22);color:var(--blue);border:1px solid rgba(96,165,250,.55);}
+.ptile.goal{background:rgba(74,222,128,.2);color:var(--green);border:1px solid rgba(74,222,128,.5);}
+.ptile.crit{background:rgba(240,224,64,.2);color:var(--yellow);border:1px solid rgba(240,224,64,.5);}
+.ptile.conflict{background:rgba(248,113,113,.22);color:var(--red);border:1px solid rgba(248,113,113,.5);}
+
+/* ── BARRA DE GRÁFICO ── */
+.barrow{display:flex;align-items:center;gap:16px;margin-bottom:16px;}
+.barlbl{font-family:'Space Mono',monospace;font-size:1rem;color:var(--dim);width:100px;text-align:right;}
+.bartrack{flex:1;height:34px;background:var(--card);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.barfill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:14px;font-family:'Space Mono',monospace;font-size:.8rem;color:rgba(0,0,0,.75);font-weight:700;}
+.barval{font-family:'Space Mono',monospace;font-size:1rem;color:var(--dim);width:120px;}
+
+/* ── FUNÇÃO — badge com nome de função sem código ── */
+.fn-badge{display:inline-block;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);border-radius:4px;padding:4px 12px;font-family:'Space Mono',monospace;font-size:.9rem;color:var(--blue);}
+
+/* ── LABEL DIREÇÃO ── */
+.dir-lbl{font-family:'DM Sans',sans-serif;font-size:1.1rem;color:var(--dim);margin-bottom:8px;text-align:center;line-height:1.4;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nb">8 &amp; 15 Puzzle</div>
+  <div class="dots" id="dots"></div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 1 — CAPA
+══════════════════════════════════════════════════════ -->
+<section class="slide cover-bg" data-i="0">
+  <div class="gbg"></div>
+  <div class="tag">Algoritmos em Grafos · Prof. Tadeu Knewitz Zubaran</div>
+  <div class="ch1">8 &amp; 15<br>PUZZLE</div>
+  <div class="csub">Busca Informada em Grafo de Estados &nbsp;·&nbsp; A* &nbsp;·&nbsp; IDA*</div>
+  <div class="cpill"><span>Frank Montes</span>&nbsp;·&nbsp;<span>Gabriel Francisco</span></div>
+  <div class="cline"></div>
+  <div class="sn">01 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 2 — REQUISITOS
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="1">
+  <div class="gbg"></div>
+  <div class="tag">O que foi pedido</div>
+  <h2 class="stitle">Requisitos do Trabalho</h2>
+  <div class="rlist">
+    <div class="req">
+      <div class="rn">1</div>
+      <div class="rt">Modelar cada configuração do tabuleiro como um <strong>nó de grafo</strong> e cada movimento como uma <strong>aresta de custo 1</strong></div>
+    </div>
+    <div class="req">
+      <div class="rn">2</div>
+      <div class="rt">Usar <strong>tabela hash</strong> para verificar e armazenar estados visitados em O(1) amortizado</div>
+    </div>
+    <div class="req">
+      <div class="rn">3</div>
+      <div class="rt"><strong>A* e IDA*</strong> para ambos os puzzles com heurística <strong>Manhattan + Conflito Linear</strong> — soluções ótimas garantidas</div>
+    </div>
+  </div>
+  <div class="sn">02 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 3 — ESPAÇO DE ESTADOS
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="2">
+  <div class="gbg"></div>
+  <div class="tag">Modelagem como Grafo</div>
+  <h2 class="stitle">Espaço de Estados</h2>
+  <div class="two-col">
+    <div class="col-card" style="border-top-color:var(--yellow);">
+      <div class="col-title" style="color:var(--yellow);">8-Puzzle &nbsp;(3×3)</div>
+      <div style="font-family:'Outfit',sans-serif;font-size:3rem;font-weight:900;color:var(--yellow);margin:14px 0 8px;">181.440</div>
+      <div style="font-size:1.05rem;color:var(--dim);margin-bottom:20px;">estados alcançáveis &nbsp;(9! / 2)</div>
+      <ul class="col-list">
+        <li>Espaço tratável — BFS funcionaria</li>
+        <li>A* com heurística é muito mais rápido</li>
+      </ul>
+    </div>
+    <div class="col-card" style="border-top-color:var(--blue);">
+      <div class="col-title" style="color:var(--blue);">15-Puzzle &nbsp;(4×4)</div>
+      <div style="font-family:'Outfit',sans-serif;font-size:3rem;font-weight:900;color:var(--blue);margin:14px 0 8px;">~10 trilhões</div>
+      <div style="font-size:1.05rem;color:var(--dim);margin-bottom:20px;">estados alcançáveis &nbsp;(16! / 2)</div>
+      <ul class="col-list">
+        <li>BFS <strong>impossível</strong> — memória insuficiente</li>
+        <li>Exige busca informada com heurística forte</li>
+      </ul>
+    </div>
+  </div>
+  <div class="sn">03 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 4 — CODIFICAÇÃO E TABELA HASH
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="3">
+  <div class="gbg"></div>
+  <div class="tag">Estrutura de Dados</div>
+  <h2 class="stitle">Estado como Chave Inteira — Tabela Hash</h2>
+
+  <div style="width:100%;max-width:min(1400px,93vw);display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:stretch;">
+
+    <!-- coluna esquerda: tabuleiro → número -->
+    <div class="col-card" style="border-top-color:var(--blue);display:flex;flex-direction:column;gap:22px;">
+      <div class="col-title" style="color:var(--blue);">Tabuleiro → Número único</div>
+      <div style="display:flex;align-items:center;gap:18px;justify-content:center;">
+        <div class="puzzle g3">
+          <div class="ptile num">5</div><div class="ptile num">6</div><div class="ptile num">2</div>
+          <div class="ptile num">7</div><div class="ptile num">1</div><div class="ptile num">8</div>
+          <div class="ptile num">3</div><div class="ptile num">4</div><div class="ptile blank"></div>
+        </div>
+        <div style="font-size:2.2rem;color:var(--muted);">→</div>
+        <div style="text-align:center;">
+          <div style="font-family:'Outfit',sans-serif;font-size:2rem;font-weight:900;color:var(--blue);">uint64_t</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.82rem;color:var(--dim);margin-top:6px;">um único número de 64 bits</div>
+        </div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:1.1rem;color:var(--dim);line-height:1.6;">Cada célula cabe em <strong style="color:var(--blue);">4 bits</strong>. Com 9 células:</div>
+        <div style="font-family:'Space Mono',monospace;font-size:1rem;color:var(--yellow);text-align:center;padding:8px 0;">9 × 4 = 36 bits &nbsp;→&nbsp; cabe em uint64_t</div>
+        <div style="font-size:1rem;color:var(--dim);line-height:1.55;">O tabuleiro inteiro vira <strong style="color:var(--text);">8 bytes</strong> — comparar dois estados é uma única operação do processador.</div>
+      </div>
+    </div>
+
+    <!-- coluna direita: por que a hash é essencial -->
+    <div class="col-card" style="border-top-color:var(--green);display:flex;flex-direction:column;gap:22px;">
+      <div class="col-title" style="color:var(--green);">Por que a hash é indispensável</div>
+      <div style="font-size:1.1rem;color:var(--dim);line-height:1.7;">
+        A busca chega no mesmo estado por caminhos diferentes. Sem registrar quais já foram visitados, o algoritmo entra em loop e <strong style="color:var(--red);">nunca termina</strong>.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:6px;padding:20px;text-align:center;">
+          <div style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--green);font-size:1.2rem;">Com hash</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.88rem;color:var(--green);margin-top:8px;">consulta O(1)</div>
+          <div style="font-size:.95rem;color:var(--dim);margin-top:8px;">estado já visto → descarta na hora</div>
+        </div>
+        <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:6px;padding:20px;text-align:center;">
+          <div style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--red);font-size:1.2rem;">Sem hash</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.88rem;color:var(--red);margin-top:8px;">loop infinito</div>
+          <div style="font-size:.95rem;color:var(--dim);margin-top:8px;">revisita estados indefinidamente</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bcard" style="width:100%;max-width:min(1400px,93vw);margin-top:18px;background:rgba(240,224,64,.06);border-color:rgba(240,224,64,.2);">
+    <span class="bicon" style="color:var(--yellow);">▸</span>
+    <span class="btext">A hash também guarda o <strong>estado pai</strong> de cada nó → permite reconstruir o caminho completo ao final</span>
+  </div>
+
+  <div class="sn">04 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 5 — A* PARA AMBOS OS PUZZLES
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="4">
+  <div class="gbg"></div>
+  <div class="tag">Algoritmo Principal</div>
+  <h2 class="stitle">A* — Busca pelo Menor f = g + h</h2>
+
+  <div style="width:100%;max-width:min(1400px,93vw);display:grid;grid-template-columns:auto 1fr;gap:40px;align-items:center;">
+
+    <!-- SVG maior e legível -->
+    <svg width="420" height="400" viewBox="0 0 420 400" style="flex-shrink:0;">
+      <defs>
+        <filter id="glow2"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#f0e040"/>
+        </marker>
+        <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/>
+        </marker>
+      </defs>
+
+      <!-- ── ARESTAS ── -->
+      <!-- START → esq: não ótimo -->
+      <line x1="210" y1="82" x2="90" y2="168" stroke="#3a3a58" stroke-width="2" stroke-dasharray="7,5"/>
+      <!-- START → centro: ÓTIMO (amarelo) -->
+      <line x1="210" y1="82" x2="210" y2="160" stroke="#f0e040" stroke-width="3" opacity=".9"/>
+      <!-- START → dir: não ótimo -->
+      <line x1="210" y1="82" x2="340" y2="168" stroke="#3a3a58" stroke-width="2" stroke-dasharray="7,5"/>
+      <!-- centro → GOAL: caminho ótimo (comprimido — h=6 movimentos reais) -->
+      <line x1="210" y1="226" x2="210" y2="255" stroke="#4ade80" stroke-width="2.5" stroke-dasharray="6,4" opacity=".8"/>
+      <circle cx="210" cy="262" r="2.5" fill="#4ade80" opacity=".7"/>
+      <circle cx="210" cy="268" r="2.5" fill="#4ade80" opacity=".5"/>
+      <circle cx="210" cy="274" r="2.5" fill="#4ade80" opacity=".35"/>
+      <text x="222" y="271" fill="#3ab870" font-size="10" font-family="'Space Mono',monospace" opacity=".8">h=6 mvs</text>
+      <line x1="210" y1="280" x2="210" y2="296" stroke="#4ade80" stroke-width="2.5" opacity=".85"/>
+      <!-- centro → dir-2: ignorado -->
+      <line x1="235" y1="204" x2="330" y2="290" stroke="#2a2a40" stroke-width="1.5" stroke-dasharray="5,4" opacity=".5"/>
+
+      <!-- ── NÓ ESQUERDO f=9 (não ótimo) ── -->
+      <circle cx="90" cy="200" r="38" fill="#111120" stroke="#404060" stroke-width="2"/>
+      <text x="90" y="194" text-anchor="middle" fill="#6060a0" font-size="17" font-family="'Space Mono',monospace" font-weight="700">f=9</text>
+      <text x="90" y="213" text-anchor="middle" fill="#4a4a78" font-size="12" font-family="'Space Mono',monospace">g=1  h=8</text>
+
+      <!-- ── NÓ DIREITO f=11 (não ótimo) ── -->
+      <circle cx="340" cy="200" r="38" fill="#111120" stroke="#404060" stroke-width="2"/>
+      <text x="340" y="194" text-anchor="middle" fill="#6060a0" font-size="17" font-family="'Space Mono',monospace" font-weight="700">f=11</text>
+      <text x="340" y="213" text-anchor="middle" fill="#4a4a78" font-size="12" font-family="'Space Mono',monospace">g=1  h=10</text>
+
+      <!-- ── NÓ dir-2 f=10 (gerado mas não expandido) ── -->
+      <circle cx="330" cy="320" r="30" fill="#0e0e1a" stroke="#2a2a3e" stroke-width="1.5" opacity=".6"/>
+      <text x="330" y="315" text-anchor="middle" fill="#3a3a58" font-size="14" font-family="'Space Mono',monospace">f=10</text>
+      <text x="330" y="330" text-anchor="middle" fill="#2e2e48" font-size="11" font-family="'Space Mono',monospace">g=2  h=8</text>
+
+      <!-- ── NÓ CENTRO f=7 (MENOR f — expande primeiro) ── -->
+      <circle cx="210" cy="184" r="42" fill="rgba(240,224,64,.14)" stroke="#f0e040" stroke-width="3" filter="url(#glow2)"/>
+      <text x="210" y="174" text-anchor="middle" fill="#f0e040" font-size="20" font-family="'Space Mono',monospace" font-weight="700">f=7</text>
+      <text x="210" y="191" text-anchor="middle" fill="#c8b840" font-size="12" font-family="'Space Mono',monospace">g=1  h=6</text>
+      <text x="210" y="207" text-anchor="middle" fill="#908030" font-size="11" font-family="'Space Mono',monospace">← menor f!</text>
+
+      <!-- ── START ── -->
+      <circle cx="210" cy="46" r="38" fill="rgba(240,224,64,.12)" stroke="#f0e040" stroke-width="2.5" filter="url(#glow2)"/>
+      <text x="210" y="40" text-anchor="middle" fill="#f0e040" font-size="14" font-weight="700" font-family="'Space Mono',monospace">START</text>
+      <text x="210" y="58" text-anchor="middle" fill="#b0a040" font-size="12" font-family="'Space Mono',monospace">g=0  h=h₀</text>
+
+      <!-- ── GOAL ── -->
+      <circle cx="210" cy="330" r="38" fill="rgba(74,222,128,.22)" stroke="#4ade80" stroke-width="3" filter="url(#glow2)"/>
+      <text x="210" y="320" text-anchor="middle" fill="#4ade80" font-size="26" font-family="'Outfit',sans-serif">★</text>
+      <text x="210" y="342" text-anchor="middle" fill="#4ade80" font-size="13" font-family="'Space Mono',monospace">GOAL</text>
+
+      <!-- ── LEGENDA ── -->
+      <rect x="10" y="372" width="400" height="24" rx="5" fill="#0d0d18" stroke="#1c1c2e"/>
+      <line x1="20" y1="384" x2="50" y2="384" stroke="#f0e040" stroke-width="2.5"/>
+      <text x="56" y="388" fill="#f0e040" font-size="12" font-family="'Space Mono',monospace">menor f → expande</text>
+      <line x1="220" y1="384" x2="250" y2="384" stroke="#3a3a58" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="256" y="388" fill="#6060a0" font-size="12" font-family="'Space Mono',monospace">f alto → ignora</text>
+    </svg>
+
+    <!-- caixas de texto à direita -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="hbox">
+        <div style="font-family:'Space Mono',monospace;font-size:.8rem;color:var(--yellow);margin-bottom:8px;text-transform:uppercase;letter-spacing:.14em;">Garantia Teórica</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:1.2rem;font-weight:700;line-height:1.4;">A* encontra o caminho mais curto se h for <span style="color:var(--yellow);">admissível</span></div>
+        <div style="font-size:1rem;color:var(--dim);margin-top:8px;">Expande sempre o estado com menor f = g + h. Quando o objetivo é extraído, f é o custo ótimo.</div>
+      </div>
+      <div class="bcard"><span class="bicon" style="color:var(--yellow);">▸</span><span class="btext"><strong style="color:var(--yellow);">g</strong> = movimentos já feitos &nbsp;·&nbsp; <strong style="color:var(--blue);">h</strong> = estimativa dos restantes &nbsp;·&nbsp; <strong style="color:var(--green);">f = g + h</strong> = custo total estimado</span></div>
+      <div class="bcard"><span class="bicon" style="color:var(--green);">▸</span><span class="btext">Nós com f alto são ignorados — a fila de prioridade garante que o <strong>menor f é sempre expandido primeiro</strong></span></div>
+    </div>
+  </div>
+  <div class="sn">05 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 6 — A* E IDA*
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="5">
+  <div class="gbg"></div>
+  <div class="tag">Comparação dos Algoritmos</div>
+  <h2 class="stitle">A* vs IDA* — Memória ou Re-expansão?</h2>
+
+  <div style="width:100%;max-width:min(1400px,93vw);">
+
+    <!-- IDA* pseudocode — passos numerados, 1 linha legível -->
+    <div style="background:rgba(6,6,16,.92);border:1px solid rgba(96,165,250,.28);border-radius:7px;padding:12px 24px;margin-bottom:16px;font-family:'Space Mono',monospace;font-size:.88rem;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <span style="color:var(--blue);font-weight:700;font-size:.95rem;white-space:nowrap;">IDA*:</span>
+      <span><span style="color:var(--blue);font-weight:700;">①</span> <span style="color:var(--dim);">limite</span> <span style="color:var(--blue);">←</span> <span style="color:var(--text);">h(início)</span></span>
+      <span style="color:var(--muted);">·</span>
+      <span><span style="color:var(--blue);font-weight:700;">②↻</span> <span style="color:var(--dim);">DFS, corta se</span> <span style="color:var(--red);">f &gt; limite</span></span>
+      <span style="color:var(--muted);">·</span>
+      <span><span style="color:var(--blue);font-weight:700;">③</span> <span style="color:var(--dim);">se achou</span> <span style="color:var(--green);">GOAL</span> <span style="color:var(--dim);">→ retorna</span></span>
+      <span style="color:var(--muted);">·</span>
+      <span><span style="color:var(--blue);font-weight:700;">④</span> <span style="color:var(--dim);">limite</span> <span style="color:var(--blue);">←</span> <span style="color:var(--text);">menor f cortado</span></span>
+    </div>
+
+    <!-- tabela comparativa -->
+    <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:5px 8px;align-items:stretch;">
+
+      <!-- cabeçalhos -->
+      <div></div>
+      <div style="background:rgba(240,224,64,.13);border:2px solid rgba(240,224,64,.4);border-radius:7px;padding:10px 18px;text-align:center;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:var(--yellow);">A*</div>
+      <div style="background:rgba(96,165,250,.13);border:2px solid rgba(96,165,250,.4);border-radius:7px;padding:10px 18px;text-align:center;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:var(--blue);">IDA*</div>
+
+      <!-- Algoritmo -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">Algoritmo</div>
+      <div style="background:rgba(240,224,64,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">Fila de prioridade — expande menor f</div>
+      <div style="background:rgba(96,165,250,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">DFS com limite de f crescente</div>
+
+      <!-- MEMÓRIA — principal diferença, destaque -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--text);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;font-weight:700;">Memória</div>
+      <div style="background:rgba(240,224,64,.1);border:2px solid rgba(240,224,64,.45);border-radius:5px;padding:8px 15px;font-size:.98rem;color:var(--yellow);font-weight:700;">O(nós abertos)</div>
+      <div style="background:rgba(96,165,250,.1);border:2px solid rgba(96,165,250,.45);border-radius:5px;padding:8px 15px;font-size:.98rem;color:var(--blue);font-weight:700;">O(profundidade)</div>
+
+      <!-- Re-expansões -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">Re-expansões</div>
+      <div style="background:rgba(240,224,64,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">Nunca</div>
+      <div style="background:rgba(96,165,250,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">Sim, entre iterações</div>
+
+      <!-- Limite -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">Limite</div>
+      <div style="background:rgba(240,224,64,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">500.000 nós / inst.</div>
+      <div style="background:rgba(96,165,250,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">2.000.000 nós / inst.</div>
+
+      <!-- separador visual -->
+      <div style="grid-column:1/-1;height:1px;background:var(--border);margin:2px 0;"></div>
+
+      <!-- 8-puzzle -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">8-puzzle</div>
+      <div style="background:rgba(240,224,64,.06);border:1px solid rgba(240,224,64,.22);border-radius:5px;padding:8px 15px;">
+        <strong style="color:var(--yellow);font-size:1.08rem;">100/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">· ~852 nós/inst</span>
+      </div>
+      <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.22);border-radius:5px;padding:8px 15px;">
+        <strong style="color:var(--blue);font-size:1.08rem;">100/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">· ~1606 nós/inst</span>
+      </div>
+
+      <!-- 15-puzzle -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">15-puzzle</div>
+      <div style="background:rgba(240,224,64,.06);border:1px solid rgba(240,224,64,.3);border-radius:5px;padding:8px 15px;">
+        <strong style="color:var(--yellow);font-size:1.08rem;">25/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">resolvidas</span>
+      </div>
+      <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.3);border-radius:5px;padding:8px 15px;">
+        <strong style="color:var(--blue);font-size:1.08rem;">30/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">resolvidas</span>
+      </div>
+
+      <!-- separador visual -->
+      <div style="grid-column:1/-1;height:1px;background:var(--border);margin:2px 0;"></div>
+
+      <!-- Garantia -->
+      <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">Garantia</div>
+      <div style="background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.28);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--green);">Solução ótima ✓</div>
+      <div style="background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.28);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--green);">Solução ótima ✓</div>
+    </div>
+  </div>
+
+  <div class="sn">06 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 7 — HEURÍSTICAS
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="6">
+  <div class="gbg"></div>
+  <div class="tag">Heurísticas Admissíveis</div>
+  <h2 class="stitle">Manhattan + Conflito Linear</h2>
+
+  <!-- fórmula geral -->
+  <div style="width:100%;max-width:min(1400px,93vw);background:rgba(240,224,64,.06);border:1px solid rgba(240,224,64,.2);border-radius:7px;padding:11px 24px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <span style="font-family:'Space Mono',monospace;font-size:1.05rem;color:var(--yellow);font-weight:700;">h(s)</span>
+    <span style="color:var(--muted);font-size:1.2rem;">=</span>
+    <span style="font-size:1rem;color:var(--text);">manhattan(s)</span>
+    <span style="color:var(--muted);font-size:1.2rem;">+</span>
+    <span style="font-size:1rem;color:var(--red);">2 × conflitos_lineares(s)</span>
+    <span style="margin-left:auto;font-family:'Space Mono',monospace;font-size:.8rem;color:var(--green);border:1px solid rgba(74,222,128,.3);background:rgba(74,222,128,.08);padding:5px 12px;border-radius:4px;">admissível ✓</span>
+  </div>
+
+  <div style="width:100%;max-width:min(1400px,93vw);display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch;">
+
+    <!-- LEFT: Manhattan -->
+    <div class="col-card" style="border-top-color:var(--blue);display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div class="col-title" style="color:var(--blue);">Distância de Manhattan</div>
+        <div style="font-family:'Space Mono',monospace;font-size:.82rem;color:var(--dim);margin-top:5px;">d = |linha − goal_l| + |col − goal_c|</div>
+      </div>
+
+      <!-- tabuleiro 3×3: estado [2,1,3,4,5,6,7,8,_] -->
+      <div style="display:flex;justify-content:center;flex:1;align-items:center;">
+        <div style="display:grid;grid-template-columns:repeat(3,68px);gap:5px;background:rgba(96,165,250,.07);border:2px solid rgba(96,165,250,.22);border-radius:8px;padding:5px;">
+          <div style="height:68px;background:rgba(248,113,113,.18);border:2px solid rgba(248,113,113,.5);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--red);">2</span>
+            <span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--red);">d = 1</span>
+          </div>
+          <div style="height:68px;background:rgba(248,113,113,.18);border:2px solid rgba(248,113,113,.5);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--red);">1</span>
+            <span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--red);">d = 1</span>
+          </div>
+          <div style="height:68px;background:var(--card2);border:1.5px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
+            <span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);">3</span>
+            <span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--green);">d = 0</span>
+          </div>
+          <div style="height:68px;background:var(--card2);border:1.5px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"><span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);">4</span><span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--green);">d = 0</span></div>
+          <div style="height:68px;background:var(--card2);border:1.5px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"><span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);">5</span><span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--green);">d = 0</span></div>
+          <div style="height:68px;background:var(--card2);border:1.5px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"><span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);">6</span><span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--green);">d = 0</span></div>
+          <div style="height:68px;background:var(--card2);border:1.5px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"><span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);">7</span><span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--green);">d = 0</span></div>
+          <div style="height:68px;background:var(--card2);border:1.5px solid var(--border);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"><span style="font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);">8</span><span style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--green);">d = 0</span></div>
+          <div style="height:68px;background:rgba(8,8,18,.65);border:1.5px solid var(--border);border-radius:5px;"></div>
+        </div>
+      </div>
+
+      <div style="background:rgba(96,165,250,.09);border:1px solid rgba(96,165,250,.25);border-radius:6px;padding:10px 18px;text-align:center;font-family:'Space Mono',monospace;font-size:.95rem;color:var(--blue);">
+        h<sub>manhattan</sub> = 1 + 1 + 0×6 = <strong style="font-size:1.05rem;">2</strong>
+      </div>
+    </div>
+
+    <!-- RIGHT: Conflito Linear -->
+    <div class="col-card" style="border-top-color:var(--red);display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div class="col-title" style="color:var(--red);">Conflito Linear <span style="font-weight:400;font-size:.85rem;color:var(--dim);">+2 por par</span></div>
+        <div style="font-size:.95rem;color:var(--dim);line-height:1.55;margin-top:5px;">
+          Peças na <strong style="color:var(--text);">linha certa</strong> mas em <strong style="color:var(--text);">ordem invertida</strong> — uma deve sair para a outra passar.
+        </div>
+      </div>
+
+      <!-- visual do conflito centralizado -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+
+        <!-- linha de tiles com setas de cruzamento -->
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="width:74px;height:74px;background:rgba(248,113,113,.2);border:2px solid rgba(248,113,113,.65);border-radius:7px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800;color:var(--red);">2</span>
+            </div>
+            <span style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--red);">→ pos 1</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;padding-bottom:22px;gap:1px;">
+            <span style="font-size:1.5rem;color:rgba(248,113,113,.85);line-height:1;">→</span>
+            <span style="font-size:.8rem;color:rgba(248,113,113,.35);">✕</span>
+            <span style="font-size:1.5rem;color:rgba(248,113,113,.85);line-height:1;">←</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="width:74px;height:74px;background:rgba(248,113,113,.2);border:2px solid rgba(248,113,113,.65);border-radius:7px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800;color:var(--red);">1</span>
+            </div>
+            <span style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--red);">← pos 0</span>
+          </div>
+
+          <div style="width:2px;height:74px;background:var(--border);border-radius:1px;margin:0 8px;margin-bottom:22px;"></div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="width:74px;height:74px;background:var(--card2);border:1.5px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-family:'Outfit',sans-serif;font-size:1.8rem;font-weight:800;color:var(--text);">3</span>
+            </div>
+            <span style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--dim);">pos 2 ✓</span>
+          </div>
+        </div>
+
+        <!-- badge do custo inevitável -->
+        <div style="background:rgba(248,113,113,.1);border:1.5px solid rgba(248,113,113,.32);border-radius:6px;padding:9px 22px;font-family:'Space Mono',monospace;font-size:.9rem;color:var(--red);text-align:center;">
+          uma deve sair da linha &nbsp;→&nbsp; <strong>h += 2</strong>
+        </div>
+      </div>
+
+      <!-- resultado combinado -->
+      <div style="background:rgba(240,224,64,.07);border:1px solid rgba(240,224,64,.22);border-radius:6px;padding:10px 18px;text-align:center;font-family:'Space Mono',monospace;font-size:.95rem;color:var(--yellow);">
+        h = <span style="color:var(--blue);">2</span><span style="color:var(--dim);font-size:.82rem;"> (manhattan)</span> + <span style="color:var(--red);">2</span><span style="color:var(--dim);font-size:.82rem;"> (conflito)</span> = <strong style="font-size:1.1rem;">4</strong>
+      </div>
+    </div>
+  </div>
+  <div class="sn">07 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 8 — SOLUCIONABILIDADE
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="7">
+  <div class="gbg"></div>
+  <div class="tag">Verificação Prévia</div>
+  <h2 class="stitle">Solucionabilidade — Paridade de Inversões</h2>
+  <div style="display:flex;gap:10px;margin-bottom:20px;justify-content:center;">
+    <span class="fn-badge" style="color:var(--green);border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.08);">isSolvable()</span>
+    <span style="font-family:'DM Sans',sans-serif;font-size:1rem;color:var(--dim);display:flex;align-items:center;">— executado antes de qualquer busca</span>
+  </div>
+  <div style="width:100%;max-width:min(1400px,93vw);display:flex;flex-direction:column;gap:20px;">
+    <div class="hbox">
+      <div style="font-size:1.2rem;line-height:1.6;color:var(--text);">
+        Uma <strong style="color:var(--yellow);">inversão</strong> é um par (i, j) onde i &lt; j mas o valor em i é maior que em j, <em style="color:var(--dim);">ignorando o espaço vazio</em>.
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="col-card" style="border-top-color:var(--yellow);">
+        <div class="col-title" style="color:var(--yellow);">8-puzzle (grade 3×3 — ímpar)</div>
+        <ul class="col-list">
+          <li>Solucionável ↔ número de inversões é <strong>par</strong></li>
+          <li>Independe da posição do espaço vazio</li>
+          <li>Metade dos 362.880 estados é solucionável</li>
+        </ul>
+      </div>
+      <div class="col-card" style="border-top-color:var(--blue);">
+        <div class="col-title" style="color:var(--blue);">15-puzzle (grade 4×4 — par)</div>
+        <ul class="col-list">
+          <li>Solucionável ↔ <strong>(inversões + linha vazio do fundo)</strong> é ímpar</li>
+          <li>Posição do vazio importa para a paridade</li>
+          <li>Verificado antes de iniciar qualquer busca</li>
+        </ul>
+      </div>
+    </div>
+    <div class="bcard" style="background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.25);">
+      <span class="bicon" style="color:var(--green);">✓</span>
+      <span class="btext">Evita rodar A* por minutos em uma instância que não tem solução — detectado em O(n²) antes de iniciar</span>
+    </div>
+  </div>
+  <div class="sn">08 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 9 — DEMO A*
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="8">
+  <div class="gbg"></div>
+  <div class="tag">Demonstração · 8-puzzle · Instância 3</div>
+  <h2 class="stitle">A* — Expansão Guiada por f = g + h</h2>
+
+  <!-- linha principal: inicial → vizinhos g=1 → … → objetivo -->
+  <div style="width:100%;max-width:min(1400px,93vw);display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap;">
+
+    <!-- estado inicial -->
+    <div style="text-align:center;">
+      <div class="dir-lbl">Estado inicial<br><strong style="color:var(--yellow);">g = 0</strong></div>
+      <!-- [1,_,7 / 5,2,4 / 3,8,6] — blank em (0,1) -->
+      <div class="puzzle g3">
+        <div class="ptile num">1</div><div class="ptile blank"></div><div class="ptile num">7</div>
+        <div class="ptile num">5</div><div class="ptile num">2</div><div class="ptile num">4</div>
+        <div class="ptile num">3</div><div class="ptile num">8</div><div class="ptile num">6</div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:.95rem;color:var(--blue);margin-top:10px;">h = 15</div>
+    </div>
+
+    <!-- seta -->
+    <div style="font-size:2rem;color:var(--muted);">→</div>
+
+    <!-- dois vizinhos em g=1 lado a lado -->
+    <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;justify-content:center;">
+      <!-- vizinho A: blank em (0,1) → (0,0): move ← — CORRETO -->
+      <div style="text-align:center;">
+        <div class="dir-lbl"><strong style="color:var(--blue);">g = 1</strong><br>vazio ← &nbsp; peça 1 →</div>
+        <div class="puzzle g3">
+          <div class="ptile blank"></div><div class="ptile moved">1</div><div class="ptile num">7</div>
+          <div class="ptile num">5</div><div class="ptile num">2</div><div class="ptile num">4</div>
+          <div class="ptile num">3</div><div class="ptile num">8</div><div class="ptile num">6</div>
+        </div>
+      </div>
+      <!-- vizinho B: blank em (0,1) → (1,1): move ↓ — CORRETO -->
+      <div style="text-align:center;">
+        <div class="dir-lbl"><strong style="color:var(--blue);">g = 1</strong><br>vazio ↓ &nbsp; peça 2 ↑</div>
+        <div class="puzzle g3">
+          <div class="ptile num">1</div><div class="ptile moved">2</div><div class="ptile num">7</div>
+          <div class="ptile num">5</div><div class="ptile blank"></div><div class="ptile num">4</div>
+          <div class="ptile num">3</div><div class="ptile num">8</div><div class="ptile num">6</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- reticências -->
+    <div style="text-align:center;color:var(--muted);">
+      <div style="font-size:2rem;">⋯</div>
+      <div style="font-size:1rem;color:var(--dim);">g = 2, 3, …</div>
+    </div>
+
+    <!-- objetivo -->
+    <div style="text-align:center;">
+      <div class="dir-lbl" style="color:var(--green);">Objetivo!<br><strong style="color:var(--green);">g = 25</strong></div>
+      <div class="puzzle g3">
+        <div class="ptile goal">1</div><div class="ptile goal">2</div><div class="ptile goal">3</div>
+        <div class="ptile goal">4</div><div class="ptile goal">5</div><div class="ptile goal">6</div>
+        <div class="ptile goal">7</div><div class="ptile goal">8</div><div class="ptile blank"></div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:.95rem;color:var(--green);margin-top:10px;">caminho ótimo</div>
+    </div>
+  </div>
+
+  <!-- legenda da hash -->
+  <div style="width:100%;max-width:min(1400px,93vw);margin-top:22px;">
+    <div class="bcard"><span class="bicon" style="color:var(--yellow);">▸</span><span class="btext">Hash registra o melhor <strong>g</strong> por estado e o <strong>estado pai</strong> — descarta revisitas e reconstrói o caminho ao chegar no objetivo</span></div>
+  </div>
+  <div class="sn">09 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 10 — RESULTADOS 8-PUZZLE
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="9">
+  <div class="gbg"></div>
+  <div class="tag">Resultados Reais · 8-puzzle</div>
+  <h2 class="stitle">8-puzzle — A* + IDA* — 100 Instâncias</h2>
+  <div class="sg">
+    <div class="sbox">
+      <div class="sv">100 / 100</div>
+      <div class="sd">instâncias resolvidas<br><em style="color:var(--green);">zero falhas</em></div>
+    </div>
+    <div class="sbox">
+      <div class="sv" style="color:var(--green);">21,4</div>
+      <div class="sd">profundidade média<br>em movimentos</div>
+    </div>
+    <div class="sbox">
+      <div class="sv" style="color:var(--blue);">362 / 226 ms</div>
+      <div class="sd">tempo total (A* · IDA*)<br><em style="font-size:.88rem;">por instância: &lt;18 ms · &lt;22 ms</em></div>
+    </div>
+  </div>
+
+  <div style="width:100%;max-width:min(1400px,93vw);display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;">
+
+    <!-- gráfico de barras -->
+    <div>
+      <div style="font-family:'Space Mono',monospace;font-size:.8rem;color:var(--dim);margin-bottom:14px;text-transform:uppercase;letter-spacing:.12em;">Distribuição de profundidade</div>
+      <div class="barrow">
+        <div class="barlbl">10 – 14</div>
+        <div class="bartrack"><div class="barfill" style="width:4%;background:var(--blue);min-width:6px;"></div></div>
+        <div class="barval"><strong style="color:var(--blue);">4</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">15 – 19</div>
+        <div class="bartrack"><div class="barfill" style="width:25%;background:var(--yellow);"></div></div>
+        <div class="barval"><strong style="color:var(--yellow);">25</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">20 – 24</div>
+        <div class="bartrack"><div class="barfill" style="width:51%;background:var(--green);"></div></div>
+        <div class="barval"><strong style="color:var(--green);">51</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">25 – 28</div>
+        <div class="bartrack"><div class="barfill" style="width:20%;background:var(--red);"></div></div>
+        <div class="barval"><strong style="color:var(--red);">20</strong> inst.</div>
+      </div>
+    </div>
+
+    <!-- A* vs IDA* + extremos -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <!-- comparação lado a lado -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:rgba(240,224,64,.07);border:1px solid rgba(240,224,64,.28);border-radius:7px;padding:16px;text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">A*</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--yellow);">~852</div>
+          <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">nós / instância</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">362 ms total</div>
+        </div>
+        <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.28);border-radius:7px;padding:16px;text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">IDA*</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--blue);">~1606</div>
+          <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">nós / instância</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">226 ms total</div>
+        </div>
+      </div>
+
+      <!-- extremos lado a lado -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:12px 14px;">
+          <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais fácil · inst. 45</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--green);">10 mov. · 11 nós</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:6px;padding:12px 14px;">
+          <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais difíceis · 28 mov.</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--red);">inst. 16, 64, 66, 72</div>
+        </div>
+      </div>
+
+      <!-- corretude -->
+      <div style="background:rgba(240,224,64,.06);border:1px solid rgba(240,224,64,.2);border-radius:6px;padding:11px 16px;font-size:.93rem;color:var(--dim);line-height:1.5;">
+        A* e IDA* concordam na profundidade em <strong style="color:var(--yellow);">todas as 100 instâncias</strong> — confirmação de corretude
+      </div>
+    </div>
+  </div>
+  <div class="sn">10 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 11 — RESULTADOS 15-PUZZLE
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="10">
+  <div class="gbg"></div>
+  <div class="tag">Resultados Reais · 15-puzzle</div>
+  <h2 class="stitle">15-puzzle — A* + IDA* — 100 Instâncias</h2>
+  <div class="sg">
+    <div class="sbox">
+      <div class="sv"><span style="color:var(--yellow);">25</span> / <span style="color:var(--blue);">30</span></div>
+      <div class="sd">resolvidas de 100<br><em style="font-size:.88rem;">A* &nbsp;·&nbsp; IDA*</em></div>
+    </div>
+    <div class="sbox">
+      <div class="sv" style="color:var(--green);">41 – 56</div>
+      <div class="sd">faixa de profundidade<br><em style="font-size:.88rem;">média ≈ 47 movimentos</em></div>
+    </div>
+    <div class="sbox">
+      <div class="sv" style="color:var(--blue);">471 / 168 s</div>
+      <div class="sd">tempo total (A* · IDA*)<br><em style="font-size:.88rem;">incl. instâncias no limite</em></div>
+    </div>
+  </div>
+
+  <div style="width:100%;max-width:min(1400px,93vw);display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;">
+
+    <!-- gráfico de barras: distribuição de profundidade (IDA* — 30 resolvidas) -->
+    <div>
+      <div style="font-family:'Space Mono',monospace;font-size:.8rem;color:var(--dim);margin-bottom:14px;text-transform:uppercase;letter-spacing:.12em;">Distribuição de profundidade (30 resolvidas)</div>
+      <div class="barrow">
+        <div class="barlbl">41 – 44</div>
+        <div class="bartrack"><div class="barfill" style="width:46%;background:var(--blue);"></div></div>
+        <div class="barval"><strong style="color:var(--blue);">6</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">45 – 48</div>
+        <div class="bartrack"><div class="barfill" style="width:69%;background:var(--yellow);"></div></div>
+        <div class="barval"><strong style="color:var(--yellow);">9</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">49 – 52</div>
+        <div class="bartrack"><div class="barfill" style="width:100%;background:var(--green);"></div></div>
+        <div class="barval"><strong style="color:var(--green);">13</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">53 – 56</div>
+        <div class="bartrack"><div class="barfill" style="width:15%;background:var(--red);min-width:6px;"></div></div>
+        <div class="barval"><strong style="color:var(--red);">2</strong> inst.</div>
+      </div>
+    </div>
+
+    <!-- A* vs IDA* + extremos + nota -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:rgba(240,224,64,.07);border:1px solid rgba(240,224,64,.28);border-radius:7px;padding:16px;text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">A*</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--yellow);">25 / 100</div>
+          <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">resolvidas</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">471 s total · lim. 500K</div>
+        </div>
+        <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.28);border-radius:7px;padding:16px;text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">IDA*</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--blue);">30 / 100</div>
+          <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">resolvidas</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">168 s total · lim. 2M</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:12px 14px;">
+          <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais fácil · inst. 55</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--green);">41 mov. · 66 ms</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:6px;padding:12px 14px;">
+          <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais difícil · inst. 74</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--red);">56 mov. · 410 ms</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(240,224,64,.06);border:1px solid rgba(240,224,64,.2);border-radius:6px;padding:11px 16px;font-size:.93rem;color:var(--dim);line-height:1.5;">
+        Instâncias no <strong style="color:var(--red);">LIMITE</strong> têm solução — precisariam de mais tempo de execução ou heurística mais precisa
+      </div>
+    </div>
+  </div>
+  <div class="sn">11 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 12 — CONCLUSÃO
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="11">
+  <div class="gbg"></div>
+  <div class="tag">Encerramento</div>
+  <h2 class="stitle">Conclusão</h2>
+  <div style="width:100%;max-width:min(1400px,93vw);display:flex;flex-direction:column;gap:18px;">
+    <div class="hbox" style="text-align:center;padding:26px 36px;">
+      <div style="font-family:'Outfit',sans-serif;font-size:1.55rem;font-weight:700;line-height:1.4;color:var(--text);">
+        Tabela Hash + Heurística Admissível =<br><span style="color:var(--yellow);">Busca Ótima Computacionalmente Viável</span>
+      </div>
+    </div>
+    <div class="bcard"><span class="bicon" style="color:var(--yellow);">▸</span><span class="btext">Heurística admissível transformou o 15-puzzle de <strong>computacionalmente impossível</strong> em tratável</span></div>
+    <div class="bcard"><span class="bicon" style="color:var(--blue);">▸</span><span class="btext">A* e IDA* garantem solução ótima — estratégias opostas de <strong>memória vs re-expansão</strong></span></div>
+    <div class="bcard"><span class="bicon" style="color:var(--green);">▸</span><span class="btext">8-puzzle: <strong>100 / 100</strong> resolvidas com solução ótima &nbsp;·&nbsp; profundidade média 21,4 movimentos</span></div>
+  </div>
+  <div class="sn">12 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 13 — REFERÊNCIAS BIBLIOGRÁFICAS
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="12">
+  <div class="gbg"></div>
+  <div class="tag">Referências Bibliográficas</div>
+  <h2 class="stitle">Referências</h2>
+  <div style="width:100%;max-width:min(1300px,90vw);display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Russell & Norvig -->
+    <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--yellow);border-radius:5px;padding:18px 24px;">
+      <div style="font-size:1.15rem;line-height:1.65;color:var(--text);">
+        <strong style="color:var(--yellow);">RUSSELL, S.; NORVIG, P.</strong>
+        <em>Artificial Intelligence: A Modern Approach.</em>
+        4. ed. Hoboken: Pearson, 2020.
+      </div>
+      <div style="font-size:1.05rem;color:var(--dim);margin-top:6px;">BFS, A*, IDA*, heurísticas admissíveis, espaço de estados</div>
+    </div>
+
+    <!-- CLRS -->
+    <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:5px;padding:18px 24px;">
+      <div style="font-size:1.15rem;line-height:1.65;color:var(--text);">
+        <strong style="color:var(--blue);">CORMEN, T. H. et al.</strong>
+        <em>Introduction to Algorithms.</em>
+        4. ed. Cambridge: MIT Press, 2022.
+      </div>
+      <div style="font-size:1.05rem;color:var(--dim);margin-top:6px;">Algoritmos em grafos: BFS, Dijkstra, tabelas hash</div>
+    </div>
+
+    <!-- Hart, Nilsson, Raphael 1968 — paper original A* -->
+    <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--green);border-radius:5px;padding:18px 24px;">
+      <div style="font-size:1.15rem;line-height:1.65;color:var(--text);">
+        <strong style="color:var(--green);">HART, P. E.; NILSSON, N. J.; RAPHAEL, B.</strong>
+        A formal basis for the heuristic determination of minimum cost paths.
+        <em>IEEE Transactions on Systems Science and Cybernetics,</em>
+        v. 4, n. 2, p. 100–107, 1968.
+      </div>
+      <div style="font-size:1.05rem;color:var(--dim);margin-top:6px;">Artigo original do algoritmo A*</div>
+    </div>
+
+    <!-- Korf 1985 — paper original IDA* -->
+    <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--purple);border-radius:5px;padding:18px 24px;">
+      <div style="font-size:1.15rem;line-height:1.65;color:var(--text);">
+        <strong style="color:var(--purple);">KORF, R. E.</strong>
+        Depth-first iterative deepening: an optimal admissible tree search.
+        <em>Artificial Intelligence,</em>
+        v. 27, n. 1, p. 97–109, 1985.
+      </div>
+      <div style="font-size:1.05rem;color:var(--dim);margin-top:6px;">Artigo original do IDA* — benchmarks do 15-puzzle</div>
+    </div>
+
+  </div>
+  <div class="sn">13 / 14</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SLIDE 14 — OBRIGADO
+══════════════════════════════════════════════════════ -->
+<section class="slide" data-i="13">
+  <div class="gbg"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:28px;text-align:center;">
+    <div style="font-family:'Outfit',sans-serif;font-size:clamp(3.5rem,8vw,6.5rem);font-weight:900;color:var(--yellow);letter-spacing:-.02em;line-height:1;">Obrigado</div>
+    <div style="width:80px;height:3px;background:linear-gradient(90deg,var(--yellow),var(--green));border-radius:2px;"></div>
+    <div style="font-family:'Space Mono',monospace;font-size:1.05rem;color:var(--dim);line-height:1.9;">
+      Algoritmos em Grafos
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+      <div style="background:rgba(240,224,64,.07);border:1px solid rgba(240,224,64,.2);border-radius:8px;padding:12px 32px;font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:600;color:var(--text);">Gabriel Francisco</div>
+      <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:12px 32px;font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:600;color:var(--text);">Frank Gabriel</div>
+    </div>
+  </div>
+  <div class="sn">14 / 14</div>
+</section>
+
+<script>
+(function(){
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_,i)=>{
+    const d = document.createElement('div');
+    d.className='dot'+(i===0?' on':'');
+    d.onclick=()=>slides[i].scrollIntoView({behavior:'smooth'});
+    dotsEl.appendChild(d);
+  });
+  const dots = dotsEl.querySelectorAll('.dot');
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const i=+e.target.dataset.i;
+        dots.forEach((d,j)=>d.classList.toggle('on',j===i));
+      }
+    });
+  },{threshold:.5});
+  slides.forEach(s=>obs.observe(s));
+})();
+</script>
+</body>
+</html>

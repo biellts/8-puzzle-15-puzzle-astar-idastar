@@ -1,0 +1,145 @@
+Algoritmo  : idastar_8p
+Instancia  : 19
+Heuristica : Manhattan + Conflito Linear
+Status     : RESOLVIDO
+Profundidade otima: 26 movimentos
+Nos expandidos    : 4138
+Tempo             : 5.45 ms
+
+--- Solucao Otima Passo a Passo ---
+
+Estado inicial:
+  1  8  7
+  5  _  4
+  2  3  6
+
+Passo 1:
+  1  8  7
+  5  3  4
+  2  _  6
+
+Passo 2:
+  1  8  7
+  5  3  4
+  2  6  _
+
+Passo 3:
+  1  8  7
+  5  3  _
+  2  6  4
+
+Passo 4:
+  1  8  _
+  5  3  7
+  2  6  4
+
+Passo 5:
+  1  _  8
+  5  3  7
+  2  6  4
+
+Passo 6:
+  1  3  8
+  5  _  7
+  2  6  4
+
+Passo 7:
+  1  3  8
+  5  6  7
+  2  _  4
+
+Passo 8:
+  1  3  8
+  5  6  7
+  _  2  4
+
+Passo 9:
+  1  3  8
+  _  6  7
+  5  2  4
+
+Passo 10:
+  1  3  8
+  6  _  7
+  5  2  4
+
+Passo 11:
+  1  3  8
+  6  2  7
+  5  _  4
+
+Passo 12:
+  1  3  8
+  6  2  7
+  5  4  _
+
+Passo 13:
+  1  3  8
+  6  2  _
+  5  4  7
+
+Passo 14:
+  1  3  _
+  6  2  8
+  5  4  7
+
+Passo 15:
+  1  _  3
+  6  2  8
+  5  4  7
+
+Passo 16:
+  1  2  3
+  6  _  8
+  5  4  7
+
+Passo 17:
+  1  2  3
+  _  6  8
+  5  4  7
+
+Passo 18:
+  1  2  3
+  5  6  8
+  _  4  7
+
+Passo 19:
+  1  2  3
+  5  6  8
+  4  _  7
+
+Passo 20:
+  1  2  3
+  5  6  8
+  4  7  _
+
+Passo 21:
+  1  2  3
+  5  6  _
+  4  7  8
+
+Passo 22:
+  1  2  3
+  5  _  6
+  4  7  8
+
+Passo 23:
+  1  2  3
+  _  5  6
+  4  7  8
+
+Passo 24:
+  1  2  3
+  4  5  6
+  _  7  8
+
+Passo 25:
+  1  2  3
+  4  5  6
+  7  _  8
+
+Passo 26:
+  1  2  3
+  4  5  6
+  7  8  _
+

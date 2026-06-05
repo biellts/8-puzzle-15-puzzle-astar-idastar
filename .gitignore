@@ -1,0 +1,9 @@
+# Executáveis
+*.exe
+
+# Saídas intermediárias / debug
+debug_out.txt
+output_check/
+output_fmt/
+output_test/
+output_test2/
