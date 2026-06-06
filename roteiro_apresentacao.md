@@ -360,7 +360,7 @@ O slide tem três partes: uma linha de estatísticas no topo, um gráfico de bar
 **Linha de estatísticas (topo):**
 - **100 / 100** — ambos resolveram todas as instâncias, zero falhas
 - **21,4** — profundidade média (movimentos para resolver)
-- **383 / 81 ms** — tempo total (A* · IDA*) · por instância: A* < 13 ms, IDA* < 7 ms
+- **613 / 124 ms** — tempo total (A* · IDA*) · por instância: A* < 43 ms, IDA* < 75 ms
 
 **Gráfico de barras — distribuição de profundidade:**
 Mostra quantas das 100 instâncias caem em cada faixa de dificuldade:
@@ -373,8 +373,8 @@ A maior barra é a verde (51%) — confirma que a média de 21,4 está no centro
 
 **Comparação A* vs IDA* (direita):**
 Dois cards lado a lado:
-- **A***: ~852 nós/instância · 383 ms total
-- **IDA***: ~1606 nós/instância · 81 ms total
+- **A***: ~852 nós/instância · 613 ms total
+- **IDA***: ~1606 nós/instância · 124 ms total
 
 Por que IDA* expande mais nós mas é muito mais rápido no total? Cada nó é mais barato de processar (sem heap, sem hash de fechados). O dobro de nós com fração do overhead resulta em tempo muito menor.
 
@@ -412,7 +412,7 @@ O 15-puzzle tem ~10 trilhões de estados alcançáveis. Instâncias com soluçõ
 | Profundidade máxima | 56 movimentos | 64 movimentos |
 | Profundidade média (resolvidas) | 46,7 movimentos | 50,8 movimentos |
 | Total de nós expandidos | 43.062.626 | 969.367.350 |
-| Tempo total | 368,5 s (~6 min) | 736 s (~12,3 min) |
+| Tempo total | 219,9 s (~3,7 min) | 459,6 s (~7,7 min) |
 | Limite por instância | 500.000 nós | 20.000.000 nós |
 
 **Por que o IDA* resolve mais?**
@@ -434,7 +434,7 @@ Esses valores são consultados a cada expansão. Se o total de nós expandidos u
 **Fala:**
 > "Para o 15-puzzle, rodamos em todas as 100 instâncias. O A* resolveu 25 dentro do limite de 500 mil nós, com soluções de 41 a 56 movimentos e profundidade média de 46,7. O IDA* resolveu 68 — quase o triplo — porque processa cada nó mais rapidamente: sem heap nem hash de fechados, cobre muito mais espaço no mesmo orçamento.
 >
-> No total, o A* expandiu 43 milhões de nós em ~6 minutos; o IDA* expandiu 969 milhões em ~12 minutos. Mais nós, mas com custo individual muito menor — exatamente o trade-off que discutimos.
+> No total, o A* expandiu 43 milhões de nós em ~3,7 minutos; o IDA* expandiu 969 milhões em ~7,7 minutos. Mais nós, mas com custo individual muito menor — exatamente o trade-off que discutimos.
 >
 > As instâncias que atingem o limite têm solução — simplesmente precisariam de mais recursos. Isso é esperado, documentado, e faz parte da análise."
 
