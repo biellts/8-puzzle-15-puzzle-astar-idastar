@@ -335,12 +335,20 @@ O A* gerou os dois vizinhos, calculou o f de cada um e colocou na fila. Vai expa
 **O bullet no final:**
 "Hash registra o melhor g por estado e o estado pai — descarta revisitas e reconstrói o caminho ao chegar no objetivo." Isso fecha o loop: a hash não é só para evitar loops, é também quem permite reconstruir o caminho ótimo ao fim.
 
+### Como a solução passo a passo é gerada
+
+Quando o objetivo é encontrado, percorremos os ponteiros de pai armazenados na hash de trás para frente (objetivo → inicial), acumulando os estados num vetor. Depois revertemos esse vetor para ter a sequência na ordem correta (inicial → objetivo).
+
+Para imprimir cada passo, decodificamos o `uint64_t` de volta para uma grade: extraímos 4 bits por célula (`(state >> (4*i)) & 0xF`) e formatamos como matriz. O espaço vazio (valor 0) é impresso como `_`. O resultado é salvo num arquivo `.txt` em `output/detalhes/` — um arquivo por instância resolvida, com o estado inicial seguido de cada movimento numerado até o estado objetivo.
+
+O IDA* faz o mesmo processo, mas de forma diferente: como não guarda a hash de estados, ele mantém um vetor de caminho ativo durante a DFS recursiva. Quando a recursão encontra o objetivo, esse vetor já contém a sequência completa e é impresso diretamente, sem precisar de reconstrução por ponteiros de pai.
+
 **Fala:**
 > "Aqui vemos o A* trabalhando com um estado real. Partimos daqui — peças fora do lugar, h=15. Geramos dois vizinhos possíveis: mover o vazio para a esquerda ou para baixo. Cada um entra na fila de prioridade com seu f calculado.
 >
 > O A* continua assim — sempre expandindo o menor f — até chegar no objetivo em 25 movimentos, com todos os tiles no lugar.
 >
-> A hash registra o g e o estado pai de cada nó visitado. Quando o objetivo é encontrado, seguimos os pais de volta até o início — e temos o caminho completo, passo a passo."
+> A hash registra o g e o estado pai de cada nó visitado. Quando o objetivo é encontrado, seguimos os pais de volta até o início, revertemos a sequência e imprimimos cada estado como uma grade — é o arquivo passo a passo que aparece em output/detalhes."
 
 ---
 

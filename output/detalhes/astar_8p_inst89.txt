@@ -4,7 +4,7 @@ Heuristica : Manhattan + Conflito Linear
 Status     : RESOLVIDO
 Profundidade otima: 26 movimentos
 Nos expandidos    : 2598
-Tempo             : 6.98 ms
+Tempo             : 9.96 ms
 
 --- Solucao Otima Passo a Passo ---
 
