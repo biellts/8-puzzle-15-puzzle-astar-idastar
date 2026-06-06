@@ -376,7 +376,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
       <!-- Limite -->
       <div style="font-family:'Space Mono',monospace;font-size:.71rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;padding:0 6px;">Limite</div>
       <div style="background:rgba(240,224,64,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">500.000 nós / inst.</div>
-      <div style="background:rgba(96,165,250,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">2.000.000 nós / inst.</div>
+      <div style="background:rgba(96,165,250,.03);border:1px solid var(--border);border-radius:5px;padding:8px 15px;font-size:.96rem;color:var(--text);">20.000.000 nós / inst.</div>
 
       <!-- separador visual -->
       <div style="grid-column:1/-1;height:1px;background:var(--border);margin:2px 0;"></div>
@@ -396,7 +396,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
         <strong style="color:var(--yellow);font-size:1.08rem;">25/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">resolvidas</span>
       </div>
       <div style="background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.3);border-radius:5px;padding:8px 15px;">
-        <strong style="color:var(--blue);font-size:1.08rem;">30/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">resolvidas</span>
+        <strong style="color:var(--blue);font-size:1.08rem;">68/100</strong><span style="color:var(--dim);font-size:.83rem;margin-left:6px;">resolvidas</span>
       </div>
 
       <!-- separador visual -->
@@ -660,8 +660,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
       <div class="sd">profundidade média<br>em movimentos</div>
     </div>
     <div class="sbox">
-      <div class="sv" style="color:var(--blue);">362 / 226 ms</div>
-      <div class="sd">tempo total (A* · IDA*)<br><em style="font-size:.88rem;">por instância: &lt;18 ms · &lt;22 ms</em></div>
+      <div class="sv" style="color:var(--blue);">383 / 81 ms</div>
+      <div class="sd">tempo total (A* · IDA*)<br><em style="font-size:.88rem;">por instância: &lt;13 ms · &lt;7 ms</em></div>
     </div>
   </div>
 
@@ -701,13 +701,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
           <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">A*</div>
           <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--yellow);">~852</div>
           <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">nós / instância</div>
-          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">362 ms total</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">383 ms total</div>
         </div>
         <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.28);border-radius:7px;padding:16px;text-align:center;">
           <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">IDA*</div>
           <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--blue);">~1606</div>
           <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">nós / instância</div>
-          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">226 ms total</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">81 ms total</div>
         </div>
       </div>
 
@@ -741,43 +741,48 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
   <h2 class="stitle">15-puzzle — A* + IDA* — 100 Instâncias</h2>
   <div class="sg">
     <div class="sbox">
-      <div class="sv"><span style="color:var(--yellow);">25</span> / <span style="color:var(--blue);">30</span></div>
+      <div class="sv"><span style="color:var(--yellow);">25</span> / <span style="color:var(--blue);">68</span></div>
       <div class="sd">resolvidas de 100<br><em style="font-size:.88rem;">A* &nbsp;·&nbsp; IDA*</em></div>
     </div>
     <div class="sbox">
-      <div class="sv" style="color:var(--green);">41 – 56</div>
-      <div class="sd">faixa de profundidade<br><em style="font-size:.88rem;">média ≈ 47 movimentos</em></div>
+      <div class="sv" style="color:var(--green);">41 – 64</div>
+      <div class="sd">faixa de profundidade<br><em style="font-size:.88rem;">média ≈ 50,8 movimentos</em></div>
     </div>
     <div class="sbox">
-      <div class="sv" style="color:var(--blue);">471 / 168 s</div>
+      <div class="sv" style="color:var(--blue);">368 / 736 s</div>
       <div class="sd">tempo total (A* · IDA*)<br><em style="font-size:.88rem;">incl. instâncias no limite</em></div>
     </div>
   </div>
 
   <div style="width:100%;max-width:min(1400px,93vw);display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;">
 
-    <!-- gráfico de barras: distribuição de profundidade (IDA* — 30 resolvidas) -->
+    <!-- gráfico de barras: distribuição de profundidade (IDA* — 68 resolvidas) -->
     <div>
-      <div style="font-family:'Space Mono',monospace;font-size:.8rem;color:var(--dim);margin-bottom:14px;text-transform:uppercase;letter-spacing:.12em;">Distribuição de profundidade (30 resolvidas)</div>
+      <div style="font-family:'Space Mono',monospace;font-size:.8rem;color:var(--dim);margin-bottom:14px;text-transform:uppercase;letter-spacing:.12em;">Distribuição de profundidade (68 resolvidas)</div>
       <div class="barrow">
         <div class="barlbl">41 – 44</div>
-        <div class="bartrack"><div class="barfill" style="width:46%;background:var(--blue);"></div></div>
-        <div class="barval"><strong style="color:var(--blue);">6</strong> inst.</div>
+        <div class="bartrack"><div class="barfill" style="width:30%;background:var(--blue);"></div></div>
+        <div class="barval"><strong style="color:var(--blue);">7</strong> inst.</div>
       </div>
       <div class="barrow">
         <div class="barlbl">45 – 48</div>
-        <div class="bartrack"><div class="barfill" style="width:69%;background:var(--yellow);"></div></div>
-        <div class="barval"><strong style="color:var(--yellow);">9</strong> inst.</div>
+        <div class="bartrack"><div class="barfill" style="width:48%;background:var(--yellow);"></div></div>
+        <div class="barval"><strong style="color:var(--yellow);">11</strong> inst.</div>
       </div>
       <div class="barrow">
         <div class="barlbl">49 – 52</div>
         <div class="bartrack"><div class="barfill" style="width:100%;background:var(--green);"></div></div>
-        <div class="barval"><strong style="color:var(--green);">13</strong> inst.</div>
+        <div class="barval"><strong style="color:var(--green);">23</strong> inst.</div>
       </div>
       <div class="barrow">
         <div class="barlbl">53 – 56</div>
-        <div class="bartrack"><div class="barfill" style="width:15%;background:var(--red);min-width:6px;"></div></div>
-        <div class="barval"><strong style="color:var(--red);">2</strong> inst.</div>
+        <div class="bartrack"><div class="barfill" style="width:96%;background:var(--red);"></div></div>
+        <div class="barval"><strong style="color:var(--red);">22</strong> inst.</div>
+      </div>
+      <div class="barrow">
+        <div class="barlbl">57 – 64</div>
+        <div class="bartrack"><div class="barfill" style="width:22%;background:var(--purple);min-width:6px;"></div></div>
+        <div class="barval"><strong style="color:var(--purple);">5</strong> inst.</div>
       </div>
     </div>
 
@@ -789,29 +794,29 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:cen
           <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">A*</div>
           <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--yellow);">25 / 100</div>
           <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">resolvidas</div>
-          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">471 s total · lim. 500K</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">368 s total · lim. 500K</div>
         </div>
         <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.28);border-radius:7px;padding:16px;text-align:center;">
           <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">IDA*</div>
-          <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--blue);">30 / 100</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:800;color:var(--blue);">68 / 100</div>
           <div style="font-size:.84rem;color:var(--dim);margin-top:3px;">resolvidas</div>
-          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">168 s total · lim. 2M</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.78rem;color:var(--dim);margin-top:10px;border-top:1px solid var(--border);padding-top:8px;">736 s total · lim. 20M</div>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:12px 14px;">
           <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais fácil · inst. 55</div>
-          <div style="font-size:.95rem;font-weight:600;color:var(--green);">41 mov. · 66 ms</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--green);">41 mov. · 47 ms</div>
         </div>
         <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:6px;padding:12px 14px;">
-          <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais difícil · inst. 74</div>
-          <div style="font-size:.95rem;font-weight:600;color:var(--red);">56 mov. · 410 ms</div>
+          <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--dim);text-transform:uppercase;margin-bottom:5px;">Mais difícil · inst. 43</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--red);">64 mov. · 4.569 ms</div>
         </div>
       </div>
 
       <div style="background:rgba(240,224,64,.06);border:1px solid rgba(240,224,64,.2);border-radius:6px;padding:11px 16px;font-size:.93rem;color:var(--dim);line-height:1.5;">
-        Instâncias no <strong style="color:var(--red);">LIMITE</strong> têm solução — precisariam de mais tempo de execução ou heurística mais precisa
+        32 instâncias no <strong style="color:var(--red);">LIMITE</strong> têm solução — exigiriam centenas de milhões de nós; próximo passo: <em>Pattern Databases</em>
       </div>
     </div>
   </div>

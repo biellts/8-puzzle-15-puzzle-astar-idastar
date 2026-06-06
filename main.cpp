@@ -66,17 +66,15 @@ static int manhattan(uint64_t s, int width) {
 // Cada conflito exige pelo menos +2 movimentos extra — ainda admissivel.
 
 static int linearConflict(uint64_t s, int width) {
-    int n = width * width;
-    auto cells = unpackState(s, n);
     int extra = 0;
 
     for (int r = 0; r < width; ++r) {
         for (int c1 = 0; c1 < width - 1; ++c1) {
-            int v1 = cells[r * width + c1];
+            int v1 = static_cast<int>((s >> ((r * width + c1) * 4)) & 0xFu);
             if (!v1 || goalRow(v1, width) != r) continue;
             int gc1 = goalCol(v1, width);
             for (int c2 = c1 + 1; c2 < width; ++c2) {
-                int v2 = cells[r * width + c2];
+                int v2 = static_cast<int>((s >> ((r * width + c2) * 4)) & 0xFu);
                 if (!v2 || goalRow(v2, width) != r) continue;
                 if (gc1 > goalCol(v2, width)) extra += 2;
             }
@@ -84,11 +82,11 @@ static int linearConflict(uint64_t s, int width) {
     }
     for (int c = 0; c < width; ++c) {
         for (int r1 = 0; r1 < width - 1; ++r1) {
-            int v1 = cells[r1 * width + c];
+            int v1 = static_cast<int>((s >> ((r1 * width + c) * 4)) & 0xFu);
             if (!v1 || goalCol(v1, width) != c) continue;
             int gr1 = goalRow(v1, width);
             for (int r2 = r1 + 1; r2 < width; ++r2) {
-                int v2 = cells[r2 * width + c];
+                int v2 = static_cast<int>((s >> ((r2 * width + c) * 4)) & 0xFu);
                 if (!v2 || goalCol(v2, width) != c) continue;
                 if (gr1 > goalRow(v2, width)) extra += 2;
             }
@@ -103,25 +101,28 @@ static int heuristic(uint64_t s, int width) {
 
 // ─── Geracao de vizinhos ────────────────────────────────────────────────────────
 
-static std::vector<uint64_t> getNeighbors(uint64_t s, int width) {
+struct Neighbors { uint64_t states[4]; int count; };
+
+static Neighbors getNeighbors(uint64_t s, int width) {
     int n = width * width;
-    auto cells = unpackState(s, n);
     int blank = 0;
-    for (; blank < n && cells[blank] != 0; ++blank) {}
+    for (; blank < n && ((s >> (blank * 4)) & 0xFu) != 0; ++blank) {}
     int r = blank / width, c = blank % width;
 
     static constexpr int dr[] = {-1, 1, 0, 0};
     static constexpr int dc[] = {0, 0, -1, 1};
 
-    std::vector<uint64_t> result;
-    result.reserve(4);
+    Neighbors result; result.count = 0;
     for (int d = 0; d < 4; ++d) {
         int nr = r + dr[d], nc = c + dc[d];
         if (nr < 0 || nr >= width || nc < 0 || nc >= width) continue;
         int nb = nr * width + nc;
-        std::swap(cells[blank], cells[nb]);
-        result.push_back(packState(cells));
-        std::swap(cells[blank], cells[nb]);
+        uint64_t vb = (s >> (blank * 4)) & 0xFu;
+        uint64_t vn = (s >> (nb    * 4)) & 0xFu;
+        uint64_t ns = s;
+        ns &= ~(uint64_t(0xF) << (blank * 4)) & ~(uint64_t(0xF) << (nb * 4));
+        ns |= (vn << (blank * 4)) | (vb << (nb * 4));
+        result.states[result.count++] = ns;
     }
     return result;
 }
@@ -189,7 +190,7 @@ struct SearchResult {
 };
 
 static constexpr long long ASTAR_NODE_LIMIT   =   500'000LL;
-static constexpr long long IDASTAR_NODE_LIMIT = 2'000'000LL;
+static constexpr long long IDASTAR_NODE_LIMIT = 20'000'000LL;
 
 // ─── A* ─────────────────────────────────────────────────────────────────────────
 // Tabela hash: unordered_map<uint64_t, GNode>
@@ -218,7 +219,7 @@ SearchResult solveAStar(int id, const std::vector<int>& tiles, int width) {
 
     struct GNode { int g; uint64_t parent; };
     std::unordered_map<uint64_t, GNode> gScore;
-    gScore.reserve(500'000);
+    gScore.reserve(2'000'000);
     gScore[start] = {0, UINT64_MAX};
 
     using Node = std::tuple<int, int, uint64_t>;
@@ -249,7 +250,9 @@ SearchResult solveAStar(int id, const std::vector<int>& tiles, int width) {
             break;
         }
 
-        for (uint64_t nb : getNeighbors(cur, width)) {
+        auto nbrs = getNeighbors(cur, width);
+        for (int i = 0; i < nbrs.count; ++i) {
+            uint64_t nb = nbrs.states[i];
             int ng = g + 1;
             auto it2 = gScore.find(nb);
             if (it2 != gScore.end() && it2->second.g <= ng) continue;
@@ -284,7 +287,9 @@ static DFSResult idaDFS(uint64_t cur, uint64_t prev, int g, int limit,
     if (cur == goal) return {0, true};
 
     int minExceeded = INT_MAX;
-    for (uint64_t nb : getNeighbors(cur, width)) {
+    auto nbrs = getNeighbors(cur, width);
+    for (int i = 0; i < nbrs.count; ++i) {
+        uint64_t nb = nbrs.states[i];
         if (nb == prev) continue;
         ++nodes;
         auto res = idaDFS(nb, cur, g + 1, limit, width, goal, nodes, nodeLimit, path);

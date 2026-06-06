@@ -12,7 +12,7 @@
 ### O que está acontecendo aqui?
 O **8-puzzle** é aquele quebra-cabeça deslizante de 3×3 com peças numeradas 1 a 8 e um espaço vazio. Você pode mover qualquer peça adjacente ao espaço para o lugar vazio. O objetivo é chegar da configuração embaralhada até a configuração final `[1,2,3 / 4,5,6 / 7,8,_]`.
 
-O **15-puzzle** é a versão 4×4: 15 peças numeradas de 1 a 15 e um espaço vazio numa grade de 4 colunas por 4 linhas. A mecânica é idêntica — mover qualquer peça adjacente ao vazio — mas o objetivo é `[1,2,3,4 / 5,6,7,8 / 9,10,11,12 / 13,14,15,_]`. Por ser 4×4, o espaço de estados é astronomicamente maior: cerca de 10 trilhões de configurações possíveis, contra 181 mil do 8-puzzle. Isso torna o 15-puzzle computacionalmente muito mais difícil.
+O **15-puzzle** é a versão 4×4: 15 peças numeradas de 1 a 15 e um espaço vazio numa grade de 4 colunas por 4 linhas. A mecânica é idêntica — mover qualquer peça adjacente ao vazio — mas o objetivo é `[_, 1, 2, 3 / 4, 5, 6, 7 / 8, 9, 10, 11 / 12, 13, 14, 15]` (vazio no canto superior esquerdo — convenção adotada pelas instâncias fornecidas). Por ser 4×4, o espaço de estados é astronomicamente maior: cerca de 10 trilhões de configurações possíveis, contra 181 mil do 8-puzzle. Isso torna o 15-puzzle computacionalmente muito mais difícil.
 
 O trabalho consiste em implementar dois algoritmos de busca — **A\*** e **IDA\*** — que encontram a sequência de movimentos mais curta possível para resolver qualquer configuração desses puzzles.
 
@@ -29,8 +29,17 @@ Três coisas principais:
 2. **Tabela hash** para verificar e armazenar estados visitados eficientemente
 3. **A\* e IDA\*** para ambos os puzzles, mostrando tempo, nós expandidos e a solução passo a passo
 
+### Uma distinção importante sobre "executar todas as instâncias"
+O enunciado diz *"Execute para todas as instâncias postadas em anexo"*. Isso significa **rodar o algoritmo em cada instância e reportar o resultado** — não necessariamente resolver todas até o fim.
+
+Para o 8-puzzle, os dois algoritmos resolvem 100% das instâncias sem dificuldade. Para o 15-puzzle, o espaço de estados tem ~10 trilhões de configurações: instâncias com soluções de 50+ movimentos podem exigir bilhões de expansões mesmo com a melhor heurística prática. Resolver todas sem restrição de tempo exigiria técnicas especializadas além do escopo do trabalho (como Pattern Databases).
+
+Por isso, definimos um **limite de nós por instância** — uma decisão de projeto explícita que equilibra cobertura e tempo de execução. As instâncias que atingem o limite têm solução; simplesmente precisariam de mais recursos. Isso é reportado transparentemente nos resultados e faz parte da análise.
+
 **Fala:**
-> "O enunciado tem três pedidos centrais. Primeiro: modelar cada configuração do tabuleiro como um nó de grafo, e cada movimento válido como uma aresta de custo 1. Segundo: usar tabela hash para verificar estados visitados — sem isso, a busca revisita estados e nunca termina. Terceiro: implementar A* e IDA*, que produzem a solução ótima e mostram cada movimento do caminho."
+> "O enunciado tem três pedidos centrais. Primeiro: modelar cada configuração do tabuleiro como um nó de grafo, e cada movimento válido como uma aresta de custo 1. Segundo: usar tabela hash para verificar estados visitados — sem isso, a busca revisita estados e nunca termina. Terceiro: implementar A* e IDA*, que produzem a solução ótima e mostram cada movimento do caminho.
+>
+> Vale destacar uma decisão de projeto: o enunciado pede para executar todas as instâncias, e fazemos isso — rodamos em todas e reportamos cada resultado. Para as instâncias mais difíceis do 15-puzzle, o resultado é 'limite atingido', não um erro. Isso é esperado e faz parte da análise: mostramos quantas instâncias cada algoritmo resolve, com que custo, e por que algumas exigem mais recursos do que o orçamento definido."
 
 ---
 
@@ -82,7 +91,7 @@ Durante a busca, o algoritmo explora muitos caminhos diferentes — e vários de
 
 A tabela hash resolve isso: ela guarda cada estado já visitado. Antes de explorar um estado, o algoritmo consulta a tabela. Se já estiver lá, ignora. Se não estiver, processa e registra.
 
-A chave da tabela é exatamente o número de 64 bits que representa o tabuleiro — isso torna a consulta instantânea (O(1)), independente de quantos estados já foram guardados.
+A chave da tabela é exatamente o número de 64 bits que representa o tabuleiro — isso permite que a consulta seja, em média, O(1) amortizado, sem precisar comparar o estado inteiro ou calcular uma hash complexa. No pior caso teórico, se muitos estados colidirem na mesma posição, a consulta pode chegar a O(n), mas isso é muito improvável com a hash padrão de uint64_t.
 
 **Fala:**
 > "Para guardar e comparar os estados do tabuleiro de forma eficiente, empacotamos cada configuração num único número de 64 bits — 4 bits por célula. Com isso, dois estados são comparados com uma única operação do processador.
@@ -94,84 +103,133 @@ A chave da tabela é exatamente o número de 64 bits que representa o tabuleiro 
 ## Slide 5 — A* — Busca pelo Menor f = g + h
 
 ### O que mostrar no slide
-O slide tem o grafo SVG à esquerda e dois bullets à direita. O grafo é a peça principal — percorra-o de cima para baixo enquanto fala.
+O foco aqui é explicar como o A* decide qual estado explorar a seguir. Comece pelo gráfico e depois apresente a fórmula, porque o motivo é mais importante do que a matemática imediata.
+
+**Como usar o gráfico:**
+- O nó de cima é o **START**. Ele tem `g = 0` porque ainda não fizemos nenhum movimento.
+- A partir dele são gerados três filhos. Cada filho é um estado possível após um movimento.
+- Cada filho já tem um custo real (`g`) e uma estimativa do que ainda falta (`h`).
+- O A* olha para o valor total `f` e escolhe o menor.
+
+**O que a figura mostra:**
+- É um grafo simples com o START no topo e três estados logo abaixo.
+- Cada nó tem um valor `f`. O nó do centro é amarelo porque tem o menor `f` e é o primeiro a ser expandido.
+- Os nós à esquerda e à direita estão em cinza porque o A* deixa eles para depois.
+- O caminho em amarelo representa a escolha mais promissora; os pontinhos na linha verde mostram que o objetivo real exige mais movimentos do que a figura pode desenhar de forma direta.
 
 **Explicando o grafo (de cima para baixo):**
+- **START** — estado inicial, `g = 0`.
+- Três filhos:
+  - `f = 9` (cinza, esquerda) — menos promissor por enquanto.
+  - **`f = 7` (amarelo, centro)** — menor `f` e o primeiro a ser expandido.
+  - `f = 11` (cinza, direita) — deixado para depois.
+- Do nó `f = 7`, aparecem dois filhos:
+  - **GOAL** (estrela verde) — solução encontrada pelo caminho ótimo.
+  - `f = 10` (apagado) — não precisa ser expandido agora.
+- A linha amarela indica o caminho que o A* considera mais promissor.
+- Os pontinhos na linha verde mostram que o slide está simplificando o caminho real.
 
-- **START** — estado inicial, `g = 0`, sem movimentos feitos ainda.
-- Três filhos gerados a partir do START, cada um com seu `f`:
-  - `f = 9` (cinza, esquerda) — descartado por agora
-  - **`f = 7` (amarelo, centro)** — menor f → A* expande esse primeiro
-  - `f = 11` (cinza, direita) — ignorado
-- Do nó `f = 7`, dois filhos:
-  - **GOAL** (estrela verde) — solução encontrada pelo caminho ótimo
-  - `f = 10` (muito apagado) — não precisa mais expandir
-- A linha **amarela** mostra o caminho ótimo: START → f=7 → ··· → GOAL
-- Os **pontinhos** no meio da linha verde indicam que o caminho tem 6 passos (h=6) antes do GOAL — o grafo está comprimido por espaço
+**Antes da fórmula, diga isso:**
+- “O A* não escolhe só o estado que parece mais perto do objetivo, nem só o estado que já custou menos para chegar. Ele combina as duas informações.”
+- “Isso é o que torna o A* eficiente: ele avalia tanto o que já foi gasto quanto o que ainda falta.”
 
 **A fórmula f = g + h — o que cada variável significa:**
-- **g** = movimentos já feitos (custo real, cresce a cada passo)
-- **h** = estimativa dos movimentos restantes (heurística — nunca superestima)
-- **f = g + h** = estimativa do custo total do caminho
+- **g** = custo real até aqui, ou seja, o número de movimentos já feitos.
+- **h** = estimativa do custo restante até o objetivo, a heurística.
+- **f = g + h** = estimativa do custo total do caminho que passa por esse nó.
 
-Exemplo do nó amarelo: `g = 1` (um movimento feito) + `h = 6` (estimativa de 6 restantes) = `f = 7`.
+**Por que isso importa:**
+- `g` sozinho faria o algoritmo preferir caminhos curtos até agora, mesmo que levem a estados ruins.
+- `h` sozinho faria o algoritmo preferir estados que “parecem” bons, mesmo que o caminho até eles seja caro.
+- `f` combina os dois e busca o menor custo total provável.
+
+**Exemplo do nó amarelo:**
+- `g = 1` (um movimento já foi feito)
+- `h = 6` (estimativa do restante)
+- `f = 7`
+
+Mesmo que outro nó tenha `h` menor ou `g` menor, o A* escolhe o menor `f`.
 
 **Por que o A* garante a solução ótima?**
-Quando o GOAL é retirado da fila, o `f` naquele momento é o custo real mínimo. Se existisse caminho mais curto, ele teria f menor e já teria sido expandido antes — contradição. Logo, o primeiro caminho encontrado é o mais curto.
+- O A* sempre expande o nó aberto com o menor `f`.
+- Se existisse um caminho mais curto para o objetivo, algum nó desse caminho teria `f` menor e seria expandido antes.
+- Portanto, o primeiro objetivo retirado da fila é um objetivo ótimo.
 
-**Os dois bullets à direita:**
-1. Define cada variável: g (feitos) · h (estimativa) · f = g + h (custo total)
-2. Explica a estratégia: nós com f alto ficam para depois — a fila de prioridade sempre entrega o menor f primeiro
-
-**Fala:**
-> "Aqui está o A* em ação. Saímos do START e geramos três candidatos — f=9, f=7 e f=11. O A* sempre escolhe o menor f, que é o 7, marcado em amarelo.
+**O que dizer em voz alta:**
+> “Este slide mostra como o A* equilibra o custo já gasto com a estimativa do que falta. O START começa com `g = 0` e um `h` estimado. Cada vizinho recebe um `f = g + h`, e o algoritmo expande primeiro o menor `f`.
 >
-> O f é g mais h. O g é quantos movimentos já fizemos — aqui, 1. O h é a heurística, estimando quantos ainda faltam — aqui, 6. Logo f = 7.
+> O resultado é que não ganhamos por olhar só o caminho mais promissor no futuro e nem por olhar só o caminho mais barato até agora. O A* escolhe o nó que parece ter o menor custo total. Por isso o nó amarelo com `f = 7` sai antes dos outros.
 >
-> Ao expandir f=7, encontramos o objetivo pelo caminho ótimo. Os nós cinzas foram gerados mas ignorados — f maior significa caminho mais longo, então a fila não os escolheu. A garantia de otimalidade vem exatamente disso: quando o objetivo sai da fila, não há como existir um caminho mais curto que ainda não foi explorado."
+> Quando o objetivo é finalmente retirado da fila, esse caminho já é o mais curto possível.”
 
 ---
 
 ## Slide 6 — A* vs IDA* — Memória ou Re-expansão?
+### O que este slide mostra (versão enxuta e didática)
+Este slide explica por que usamos A* e IDA*: um prioriza evitar trabalho repetido guardando muitos estados (mais memória),
+o outro prioriza usar pouca memória e aceita refazer parte do trabalho (mais re‑expansões).
 
-### O que este slide mostra
-O slide tem dois elementos: o pseudocódigo do IDA* no topo e uma tabela comparando os dois algoritmos linha por linha. Fale primeiro sobre o pseudocódigo e depois percorra a tabela de cima para baixo, destacando a linha **Memória** como a mais importante.
+### Por que usar A* ou IDA* (didático)
+- A*: guarda a fronteira em memória (os estados gerados que ainda não foram completamente explorados) e uma tabela para não visitar o mesmo estado com custo pior. Resultado: menos nós
+  expandidos, mais memória usada.
+- IDA*: faz uma busca em profundidade limitada por um critério `f = g + h`; não guarda a fronteira. Resultado: memória
+  pequena (proporcional à profundidade), mas pode re‑explorar estados várias vezes.
 
-### Pseudocódigo — os 4 passos do IDA*
-No topo do slide estão os 4 passos numerados:
+### Pseudocódigo (em palavras) — como o IDA* funciona
+1. Defina `limite = h(inicial)` (g = 0 no começo).
+2. Faça uma busca em profundidade seguindo um único caminho; em cada nó calcule `f = g + h`.
+3. Se `f > limite`, pare de seguir esse ramo (poda) e registre o menor `f` cortado.
+4. Se encontrar o objetivo dentro do limite, pare — a solução é ótima. Caso contrário, atualize `limite` para o menor `f`
+   que foi cortado e repita a DFS.
 
-- **① limite ← h(início)** — começa com o menor f possível. Antes de qualquer movimento, g=0 e f = h. Esse é o limite mínimo da primeira iteração.
-- **② ↻ DFS, corta se f > limite** — faz busca em profundidade. Toda vez que um nó tiver f maior que o limite atual, descarta esse ramo e volta. Não guarda nada — vai fundo por um caminho antes de tentar outro.
-- **③ se achou GOAL → retorna** — se dentro do limite a busca chega ao objetivo, a solução foi encontrada. O caminho está na pilha de recursão.
-- **④ limite ← menor f cortado** — se não achou o objetivo em nenhum ramo, pega o menor f que foi cortado (o próximo valor "razoável") e usa como novo limite. Na próxima iteração, a busca vai um pouco mais fundo.
+### Tabela — explicação linha a linha (didático)
+- Forma de busca: A* = fila de prioridade (escolhe menor `f` globalmente). IDA* = DFS iterativa com poda por `f`.
+- Memória: A* usa muita memória (fila + tabela); IDA* usa memória baixa (pilha de recursão, O(profundidade)).
+- Re‑expansões: A* evita re‑expansões com a tabela; IDA* re‑expande estados entre iterações porque não guarda
+  os fechados.
+- Resultado prático: com limites práticos A* tende a expandir menos nós, mas pode esgotar memória; IDA* expande
+  mais nós, mas cada nó é mais barato — por isso, em instâncias muito difíceis (15‑puzzle) o IDA* pode resolver
+  mais casos dentro do orçamento.
 
-O processo repete até encontrar o objetivo.
+### Execução do programa (linguagem simples)
+O programa lê um conjunto de instâncias e, para cada instância, tenta resolver com A* e com IDA*. Para cada tentativa
+registra: profundidade da solução (se encontrada), nós expandidos, tempo e se um limite foi atingido. No final ele grava
+esses resultados em arquivos CSV e gera um relatório resumo; também salva, para cada instância resolvida, um arquivo com
+os passos da solução. Usamos limites práticos para controle de tempo (ex.: A* ≈ 500K nós, IDA* ≈ 20M nós).
 
 ### Linha por linha da tabela
 
-**Algoritmo**: são abordagens opostas. A* usa fila de prioridade e sempre sabe qual nó expandir a seguir (o de menor f). IDA* usa DFS — vai até o fundo de um caminho antes de tentar outro.
+O texto da tabela deve ser lido como um contraste direto.
+Primeiro, o A* mantém uma fila de prioridade e escolhe sempre o nó com menor `f` entre todos os nós abertos. Ele também mantém uma tabela hash `unordered_map<uint64_t, GNode>` para registrar o menor custo `g` encontrado por estado, de modo que não re-expanda estados com custo pior.
 
-**Memória** ← linha mais importante:
-- A* guarda **todos os estados visitados** na hash com g e estado pai. Para o 15-puzzle com soluções de 50+ movimentos, isso pode ser centenas de milhares de entradas.
-- IDA* não guarda estados fechados. Só usa a **pilha de recursão** — no máximo ~50 estados para o 15-puzzle.
-- Essa é a diferença fundamental que explica todos os outros números da tabela.
+O IDA* faz o contrário: ele não guarda estados fechados, ele só guarda o caminho atual na pilha de recursão e alguns contadores. Isso é o que torna sua memória proporcional à profundidade da solução, em vez do tamanho da fronteira de busca.
 
-**Re-expansões**: A* nunca revisita o mesmo estado (a hash impede). O IDA* re-expande nós entre iterações — na iteração com limite=42, ele revisita tudo que viu na iteração com limite=40. Na prática, esse custo extra é pequeno perto do ganho em memória.
+Como consequência, o A* evita revisitar estados e expande menos nós, enquanto o IDA* pode visitar o mesmo estado várias vezes em diferentes iterações. Essa re-expansão aumenta o número total de nós expandidos no IDA*, mas cada nó custa menos porque não há heap nem hash de fechados para gerenciar.
 
-**Limite de nós por instância**: são os tetos que o nosso código impõe. O IDA* tem um limite maior (2M vs 500K) porque cada nó custa muito menos memória.
+No nosso experimento, isso se confirma em como os limites foram definidos: colocamos um teto de 500 mil nós para o A* e 20 milhões para o IDA*, porque cada nó do IDA* pesa muito menos em memória. No 8-puzzle, os dois algoritmos resolvem todas as 100 instâncias. No 15-puzzle, a diferença de memória vira um fator decisivo: o A* resolve menos instâncias que o IDA*, pois esgota memória antes.
 
-**8-puzzle**: os dois resolvem 100% das 100 instâncias. O IDA* expande mais nós por instância (~1606 vs ~852) — re-expande entre iterações — mas os dois chegam lá.
+O ponto principal do slide é esse trade-off: A* troca memória por menos trabalho repetido; IDA* troca pouca memória por mais re-expansões.
 
-**15-puzzle**: aqui a diferença aparece. A* resolve 25/100, IDA* resolve 30/100. O IDA* vai mais longe porque não esgota memória tão rápido. Os 70/75 restantes atingiram o limite de nós antes de encontrar solução.
-
-**Garantia**: os dois garantem solução ótima com heurística admissível — mesma qualidade de resultado, estratégias opostas de uso de memória.
-
-**Fala:**
-> "O pseudocódigo no topo mostra como o IDA* funciona em 4 passos. Começa definindo o limite igual a h do estado inicial. Depois faz DFS, cortando qualquer ramo onde f ultrapassa esse limite. Se achar o objetivo, retorna. Se não achar, pega o menor f que foi cortado como novo limite — e repete. Cada iteração vai um pouco mais fundo.
+**O que dizer em voz alta:**
+> “Este slide responde à pergunta do título. O A* usa memória para evitar trabalho repetido; o IDA* usa pouca memória e aceita re-expansões.
 >
-> Agora a tabela. Eu quero chamar atenção para a linha Memória — essa é a diferença fundamental. O A* guarda todos os estados visitados na hash. Para o 15-puzzle isso pode ser centenas de milhares de entradas. O IDA* não guarda nada disso — só a pilha de recursão, uns 50 estados.
+> O IDA* começa com um limite igual a `h` do início e faz DFS cortando qualquer ramo cujo `f = g + h` ultrapasse esse limite. Se não encontrar o objetivo, ele aumenta o limite e tenta de novo. Por isso ele usa muito pouca memória.
 >
-> No 8-puzzle os dois resolvem 100%. No 15-puzzle a diferença aparece: A* 25 de 100, IDA* 30 de 100. O IDA* vai mais longe porque não esgota memória. E os dois garantem solução ótima — mesma qualidade, estratégias opostas."
+> O A* faz o contrário: ele guarda todos os estados visitados e escolhe o próximo nó pelo menor `f` entre todos os nós abertos. Isso exige mais memória, mas reduz nós expandidos.
+>
+> No 8-puzzle, os dois resolvem todas as instâncias. No 15-puzzle, o IDA* resolve mais instâncias dentro do limite porque não esgota a memória. Por isso o título é ‘Memória ou Re-expansão’.”
+
+### Como o programa executa isso
+O `main.cpp` lê as instâncias de `8puzzle_instances.txt` e `15puzzle_instances.txt` e aplica `solveAStar(...)` e `solveIDAStar(...)` a cada instância de 8-puzzle e 15-puzzle. No terminal ele mostra apenas o andamento e os resumos, enquanto os detalhes completos são gravados em arquivos.
+
+Os resultados são gravados em arquivos separados:
+
+* `output/8puzzle_astar_results.csv`
+* `output/8puzzle_idastar_results.csv`
+* `output/15puzzle_astar_results.csv`
+* `output/15puzzle_idastar_results.csv`
+
+O programa também gera relatórios em Markdown em `output/report_astar.md` e `output/report_idastar.md`, e grava os passos da solução em `output/detalhes/astar_*` e `output/detalhes/idastar_*`.
 
 ---
 
@@ -294,7 +352,7 @@ O slide tem três partes: uma linha de estatísticas no topo, um gráfico de bar
 **Linha de estatísticas (topo):**
 - **100 / 100** — ambos resolveram todas as instâncias, zero falhas
 - **21,4** — profundidade média (movimentos para resolver)
-- **< 22 ms** — tempo máximo por instância (A* < 18 ms, IDA* < 22 ms)
+- **383 / 81 ms** — tempo total (A* · IDA*) · por instância: A* < 13 ms, IDA* < 7 ms
 
 **Gráfico de barras — distribuição de profundidade:**
 Mostra quantas das 100 instâncias caem em cada faixa de dificuldade:
@@ -307,10 +365,10 @@ A maior barra é a verde (51%) — confirma que a média de 21,4 está no centro
 
 **Comparação A* vs IDA* (direita):**
 Dois cards lado a lado:
-- **A***: ~852 nós/instância · 362 ms total
-- **IDA***: ~1606 nós/instância · 226 ms total
+- **A***: ~852 nós/instância · 383 ms total
+- **IDA***: ~1606 nós/instância · 81 ms total
 
-Por que IDA* expande mais nós mas é mais rápido no total? Cada nó é mais barato de processar (sem heap, sem hash de fechados). O dobro de nós com metade do overhead resulta em tempo parecido — ou até menor.
+Por que IDA* expande mais nós mas é muito mais rápido no total? Cada nó é mais barato de processar (sem heap, sem hash de fechados). O dobro de nós com fração do overhead resulta em tempo muito menor.
 
 **Extremos (lado a lado abaixo dos cards):**
 - Mais fácil: instância 45 — 10 movimentos, 11 nós
@@ -330,33 +388,47 @@ Por que IDA* expande mais nós mas é mais rápido no total? Cada nó é mais ba
 ## Slide 11 — Resultados: 15-puzzle
 
 ### Por que nem todas as instâncias resolvem?
-O 15-puzzle com soluções de 50+ movimentos exige expandir milhões de nós mesmo com heurística forte. Impusemos um limite (500 mil para A*, 2 milhões para IDA*) para a apresentação terminar em tempo razoável. As instâncias que "atingem limite" têm solução — apenas precisam de mais computação.
+
+O 15-puzzle tem ~10 trilhões de estados alcançáveis. Instâncias com soluções de 50+ movimentos exigem expandir milhões de nós mesmo com a melhor heurística prática. O limite de nós (500 K para A*, 20 M para IDA*) foi calibrado para maximizar instâncias resolvidas dentro de um tempo de execução aceitável. Resolver todas as instâncias exigiria técnicas além do escopo do trabalho, como Pattern Databases.
 
 **Resultados reais:**
 - A* (limite 500 K nós): **25 / 100** resolvidas · profundidade 41–56 movimentos
-- IDA* (limite 2 M nós): **30 / 100** resolvidas · mesmas profundidades
+- IDA* (limite 20 M nós): **68 / 100** resolvidas · profundidade 41–64 movimentos
 
 **Tabela resumo — 15-puzzle (100 instâncias):**
 
 | Métrica | A* | IDA* |
 |---|---|---|
-| Instâncias resolvidas | 25 / 100 | 30 / 100 |
+| Instâncias resolvidas | 25 / 100 | 68 / 100 |
 | Profundidade mínima | 41 movimentos | 41 movimentos |
-| Profundidade máxima | 56 movimentos | 56 movimentos |
-| Profundidade média (resolvidas) | 46,7 movimentos | 47,7 movimentos |
-| Total de nós expandidos | 43.062.626 | 160.576.158 (~160 M) |
-| Tempo total | 471.896 ms (~7,8 min) | 168.133 ms (~2,8 min) |
-| Limite por instância | 500.000 nós | 2.000.000 nós |
+| Profundidade máxima | 56 movimentos | 64 movimentos |
+| Profundidade média (resolvidas) | 46,7 movimentos | 50,8 movimentos |
+| Total de nós expandidos | 43.062.626 | 969.367.350 |
+| Tempo total | 368,5 s (~6 min) | 736 s (~12,3 min) |
+| Limite por instância | 500.000 nós | 20.000.000 nós |
 
 **Por que o IDA* resolve mais?**
-Com 2 milhões de nós e memória O(profundidade), o IDA* processa mais nós por segundo — não precisa gerenciar uma heap nem uma hash de fechados. Resultado: cobre mais do espaço dentro do limite de tempo.
+Com memória O(profundidade), o IDA* processa mais nós por segundo — não precisa gerenciar heap nem hash de fechados. Resultado: cobre mais espaço dentro do mesmo orçamento de nós.
+
+**Extremos do IDA* (aparecem no slide, lado a lado):**
+- **Mais fácil — inst. 55:** 41 movimentos · 47 ms · 77.633 nós. Profundidade mínima entre todas as instâncias resolvidas — h₀=31, solução rasa, IDA* termina rapidamente.
+- **Mais difícil — inst. 43:** 64 movimentos · 4.569 ms · 9.609.075 nós. Profundidade máxima — h₀=56, solução mais profunda do conjunto; chegou perto do limite (20M) mas resolveu.
+
+**Limites definidos no código (`main.cpp`):**
+```cpp
+static constexpr long long ASTAR_NODE_LIMIT   =   500'000LL;
+static constexpr long long IDASTAR_NODE_LIMIT = 20'000'000LL;
+```
+Esses valores são consultados a cada expansão. Se o total de nós expandidos ultrapassar o limite, o resultado é marcado como `LIMITE` — sem crash, sem loop infinito.
 
 **Confirmação de corretude:** para as instâncias que ambos resolvem, as profundidades coincidem. Isso garante que ambos estão encontrando a solução ótima.
 
 **Fala:**
-> "Para o 15-puzzle, definimos limites de nós para manter o tempo de execução razoável. O A* resolveu 25 das 100 instâncias, com profundidades de 41 a 56 movimentos. O IDA* resolveu 30 — 5 a mais — porque processa nós mais rapidamente ao custo de re-expandir alguns estados.
+> "Para o 15-puzzle, rodamos em todas as 100 instâncias. O A* resolveu 25 dentro do limite de 500 mil nós, com soluções de 41 a 56 movimentos e profundidade média de 46,7. O IDA* resolveu 68 — quase o triplo — porque processa cada nó mais rapidamente: sem heap nem hash de fechados, cobre muito mais espaço no mesmo orçamento.
 >
-> As instâncias que atingem o limite não têm nenhum bug — elas simplesmente precisam de mais recursos. São equivalentes aos benchmarks de Korf (1985), que são referências clássicas em pesquisa de IA."
+> No total, o A* expandiu 43 milhões de nós em ~6 minutos; o IDA* expandiu 969 milhões em ~12 minutos. Mais nós, mas com custo individual muito menor — exatamente o trade-off que discutimos.
+>
+> As instâncias que atingem o limite têm solução — simplesmente precisariam de mais recursos. Isso é esperado, documentado, e faz parte da análise."
 
 ---
 
@@ -424,8 +496,11 @@ Cada movimento de peça troca o vazio com uma peça adjacente. Na sequência lin
 **"Por que Manhattan + Conflito Linear é admissível?"**
 > Manhattan: cada peça precisa de pelo menos sua distância Manhattan, independente das outras. Conflito Linear: cada conflito detectado exige no mínimo 2 movimentos inevitáveis. A soma nunca superestima o custo real.
 
+**"O enunciado pede para executar TODAS as instâncias — vocês não cumpriram isso?"**
+> Cumprimos. O código executa A* e IDA* em todas as 100 instâncias do 15-puzzle e reporta o resultado de cada uma. "Executar todas" não é o mesmo que "resolver todas" — para as instâncias difíceis, o resultado é "LIMITE ATINGIDO", que é um resultado válido e esperado. Resolver todas as instâncias do 15-puzzle sem restrição de tempo exigiria técnicas além do escopo do trabalho, como Pattern Databases. Mesmo as implementações de referência da literatura (Korf, 1985) levam horas nas instâncias mais difíceis.
+
 **"O que são as instâncias que atingem LIMITE?"**
-> São instâncias cujo espaço de busca exige mais nós do que o limite definido (500 K para A*, 2 M para IDA*) — independente da profundidade da solução. Por exemplo, inst. 7 tem h₀=30 e já esgota o limite: a heurística é boa mas o espaço ainda é grande demais naquele orçamento. A solução existe — só precisaríamos de mais tempo ou de uma heurística mais forte (como Pattern Databases). São equivalentes aos benchmarks de Korf 1985.
+> São instâncias cujo espaço de busca exige mais nós do que o limite definido (500 K para A*, 20 M para IDA*) — independente da profundidade da solução. Por exemplo, inst. 7 tem h₀=30 e já esgota o limite: a heurística é boa mas o espaço ainda é grande demais naquele orçamento. A solução existe — só precisaríamos de mais tempo ou de uma heurística mais forte (como Pattern Databases). São equivalentes aos benchmarks de Korf 1985.
 
 **"Por que usaram uint64_t e não um array para o estado?"**
 > uint64_t é uma chave nativa do C++ — a função de hash padrão do unordered_map já funciona em O(1) sem overhead. Com array, precisaríamos de hash customizada. Além disso, 8 bytes por estado vs 9 ou 16 ints — 4× a 8× menos memória.
