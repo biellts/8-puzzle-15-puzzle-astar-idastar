@@ -1,0 +1,110 @@
+Algoritmo  : astar_8p
+Instancia  : 63
+Heuristica : Manhattan + Conflito Linear
+Status     : RESOLVIDO
+Profundidade otima: 19 movimentos
+Nos expandidos    : 312
+Tempo             : 1.51 ms
+
+--- Solucao Otima Passo a Passo ---
+
+Estado inicial:
+  5  3  6
+  4  7  2
+  1  _  8
+
+Passo 1:
+  5  3  6
+  4  _  2
+  1  7  8
+
+Passo 2:
+  5  3  6
+  4  2  _
+  1  7  8
+
+Passo 3:
+  5  3  _
+  4  2  6
+  1  7  8
+
+Passo 4:
+  5  _  3
+  4  2  6
+  1  7  8
+
+Passo 5:
+  5  2  3
+  4  _  6
+  1  7  8
+
+Passo 6:
+  5  2  3
+  _  4  6
+  1  7  8
+
+Passo 7:
+  5  2  3
+  1  4  6
+  _  7  8
+
+Passo 8:
+  5  2  3
+  1  4  6
+  7  _  8
+
+Passo 9:
+  5  2  3
+  1  4  6
+  7  8  _
+
+Passo 10:
+  5  2  3
+  1  4  _
+  7  8  6
+
+Passo 11:
+  5  2  _
+  1  4  3
+  7  8  6
+
+Passo 12:
+  5  _  2
+  1  4  3
+  7  8  6
+
+Passo 13:
+  _  5  2
+  1  4  3
+  7  8  6
+
+Passo 14:
+  1  5  2
+  _  4  3
+  7  8  6
+
+Passo 15:
+  1  5  2
+  4  _  3
+  7  8  6
+
+Passo 16:
+  1  _  2
+  4  5  3
+  7  8  6
+
+Passo 17:
+  1  2  _
+  4  5  3
+  7  8  6
+
+Passo 18:
+  1  2  3
+  4  5  _
+  7  8  6
+
+Passo 19:
+  1  2  3
+  4  5  6
+  7  8  _
+

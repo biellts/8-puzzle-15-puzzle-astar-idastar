@@ -195,7 +195,7 @@ o outro prioriza usar pouca memória e aceita refazer parte do trabalho (mais re
 O programa lê um conjunto de instâncias e, para cada instância, tenta resolver com A* e com IDA*. Para cada tentativa
 registra: profundidade da solução (se encontrada), nós expandidos, tempo e se um limite foi atingido. No final ele grava
 esses resultados em arquivos CSV e gera um relatório resumo; também salva, para cada instância resolvida, um arquivo com
-os passos da solução. Usamos limites práticos para controle de tempo (ex.: A* ≈ 500K nós, IDA* ≈ 20M nós).
+os passos da solução. Usamos limites práticos para controle de tempo (ex.: A* ≈ 500K nós, IDA* ≈ 50M nós).
 
 ### Linha por linha da tabela
 
@@ -209,6 +209,18 @@ Como consequência, o A* evita revisitar estados e expande menos nós, enquanto 
 No nosso experimento, isso se confirma em como os limites foram definidos: colocamos um teto de 500 mil nós para o A* e 20 milhões para o IDA*, porque cada nó do IDA* pesa muito menos em memória. No 8-puzzle, os dois algoritmos resolvem todas as 100 instâncias. No 15-puzzle, a diferença de memória vira um fator decisivo: o A* resolve menos instâncias que o IDA*, pois esgota memória antes.
 
 O ponto principal do slide é esse trade-off: A* troca memória por menos trabalho repetido; IDA* troca pouca memória por mais re-expansões.
+
+### Como esse trade-off aparece nas decisões de implementação
+
+O contraste memória vs re-expansão não é só teoria — ele se mostra em duas escolhas práticas:
+
+**No A* — o que fazer quando encontramos um caminho mais barato para um estado já na fila**
+
+O `std::priority_queue` do C++ não suporta `decreaseKey` — a operação de atualizar a prioridade de uma entrada já inserida. A solução adotada foi inserir o estado novamente com o custo mais barato e ignorar a versão antiga quando ela aparecer na saída. Antes de processar qualquer estado retirado da fila, verificamos se o custo que a fila entregou ainda bate com o registrado na hash — se não bater, descartamos. A fila pode ter duplicatas, mas elas pesam pouco e são eliminadas rapidamente.
+
+**No IDA* — por que não guardar todos os estados já visitados**
+
+O IDA* deliberadamente não mantém uma lista de todos os estados que já passou. Fazer isso destruiria sua principal vantagem: usar apenas a memória do caminho atual. Para evitar o retrocesso imediato — chegar num estado e na jogada seguinte simplesmente voltar de onde veio — basta lembrar só do estado anterior direto e pulá-lo. Loops mais longos não precisam de tratamento especial: como a heurística nunca subestima, qualquer volta pelo mesmo caminho aumenta o `f` e é podada naturalmente pelo limite da iteração.
 
 **O que dizer em voz alta:**
 > “Este slide responde à pergunta do título. O A* usa memória para evitar trabalho repetido; o IDA* usa pouca memória e aceita re-expansões.
@@ -397,46 +409,46 @@ Por que IDA* expande mais nós mas é muito mais rápido no total? Cada nó é m
 
 ### Por que nem todas as instâncias resolvem?
 
-O 15-puzzle tem ~10 trilhões de estados alcançáveis. Instâncias com soluções de 50+ movimentos exigem expandir milhões de nós mesmo com a melhor heurística prática. O limite de nós (500 K para A*, 20 M para IDA*) foi calibrado para maximizar instâncias resolvidas dentro de um tempo de execução aceitável. Resolver todas as instâncias exigiria técnicas além do escopo do trabalho, como Pattern Databases.
+O 15-puzzle tem ~10 trilhões de estados alcançáveis. Instâncias com soluções de 50+ movimentos exigem expandir milhões de nós mesmo com a melhor heurística prática. O limite de nós (500 K para A*, 50 M para IDA*) foi calibrado para maximizar instâncias resolvidas dentro de um tempo de execução aceitável. Resolver todas as instâncias exigiria técnicas além do escopo do trabalho, como Pattern Databases.
 
 **Resultados reais:**
 - A* (limite 500 K nós): **25 / 100** resolvidas · profundidade 41–56 movimentos
-- IDA* (limite 20 M nós): **68 / 100** resolvidas · profundidade 41–64 movimentos
+- IDA* (limite 50 M nós): **80 / 100** resolvidas · profundidade 41–64 movimentos
 
 **Tabela resumo — 15-puzzle (100 instâncias):**
 
 | Métrica | A* | IDA* |
 |---|---|---|
-| Instâncias resolvidas | 25 / 100 | 68 / 100 |
+| Instâncias resolvidas | 25 / 100 | 80 / 100 |
 | Profundidade mínima | 41 movimentos | 41 movimentos |
 | Profundidade máxima | 56 movimentos | 64 movimentos |
-| Profundidade média (resolvidas) | 46,7 movimentos | 50,8 movimentos |
-| Total de nós expandidos | 43.062.626 | 969.367.350 |
-| Tempo total | 219,9 s (~3,7 min) | 459,6 s (~7,7 min) |
-| Limite por instância | 500.000 nós | 20.000.000 nós |
+| Profundidade média (resolvidas) | 46,7 movimentos | 51,5 movimentos |
+| Total de nós expandidos | 43.062.626 | 1.702.157.876 |
+| Tempo total | 219,9 s (~3,7 min) | 876,3 s (~14,6 min) |
+| Limite por instância | 500.000 nós | 50.000.000 nós |
 
 **Por que o IDA* resolve mais?**
 Com memória O(profundidade), o IDA* processa mais nós por segundo — não precisa gerenciar heap nem hash de fechados. Resultado: cobre mais espaço dentro do mesmo orçamento de nós.
 
 **Extremos do IDA* (aparecem no slide, lado a lado):**
 - **Mais fácil — inst. 55:** 41 movimentos · 47 ms · 77.633 nós. Profundidade mínima entre todas as instâncias resolvidas — h₀=31, solução rasa, IDA* termina rapidamente.
-- **Mais difícil — inst. 43:** 64 movimentos · 4.569 ms · 9.609.075 nós. Profundidade máxima — h₀=56, solução mais profunda do conjunto; chegou perto do limite (20M) mas resolveu.
+- **Mais difícil — inst. 43:** 64 movimentos · 7.929 ms · 9.609.075 nós. Profundidade máxima — h₀=56, solução mais profunda do conjunto; resolveu bem dentro do limite de 50M.
 
 **Limites definidos no código (`main.cpp`):**
 ```cpp
 static constexpr long long ASTAR_NODE_LIMIT   =   500'000LL;
-static constexpr long long IDASTAR_NODE_LIMIT = 20'000'000LL;
+static constexpr long long IDASTAR_NODE_LIMIT = 50'000'000LL;
 ```
 Esses valores são consultados a cada expansão. Se o total de nós expandidos ultrapassar o limite, o resultado é marcado como `LIMITE` — sem crash, sem loop infinito.
 
 **Confirmação de corretude:** para as instâncias que ambos resolvem, as profundidades coincidem. Isso garante que ambos estão encontrando a solução ótima.
 
 **Fala:**
-> "Para o 15-puzzle, rodamos em todas as 100 instâncias. O A* resolveu 25 dentro do limite de 500 mil nós, com soluções de 41 a 56 movimentos e profundidade média de 46,7. O IDA* resolveu 68 — quase o triplo — porque processa cada nó mais rapidamente: sem heap nem hash de fechados, cobre muito mais espaço no mesmo orçamento.
+>"Para o 15-puzzle, rodamos em todas as 100 instâncias. O A* resolveu 25 dentro do limite de 500 mil nós, com soluções de 41 a 56 movimentos e profundidade média de 46,7. O IDA* resolveu 80 — mais que o triplo — porque processa cada nó mais rapidamente: sem heap nem hash de fechados, cobre muito mais espaço no mesmo orçamento.
 >
-> No total, o A* expandiu 43 milhões de nós em ~3,7 minutos; o IDA* expandiu 969 milhões em ~7,7 minutos. Mais nós, mas com custo individual muito menor — exatamente o trade-off que discutimos.
+> No total, o A* expandiu 43 milhões de nós em ~3,7 minutos; o IDA* expandiu 1,7 bilhão em ~14,6 minutos. Mais nós, mas com custo individual muito menor — exatamente o trade-off que discutimos.
 >
-> As instâncias que atingem o limite têm solução — simplesmente precisariam de mais recursos. Isso é esperado, documentado, e faz parte da análise."
+> As 20 instâncias que atingem o limite têm solução — simplesmente precisariam de mais recursos. Isso é esperado, documentado, e faz parte da análise."
 
 ---
 
@@ -508,7 +520,7 @@ Cada movimento de peça troca o vazio com uma peça adjacente. Na sequência lin
 > Cumprimos. O código executa A* e IDA* em todas as 100 instâncias do 15-puzzle e reporta o resultado de cada uma. "Executar todas" não é o mesmo que "resolver todas" — para as instâncias difíceis, o resultado é "LIMITE ATINGIDO", que é um resultado válido e esperado. Resolver todas as instâncias do 15-puzzle sem restrição de tempo exigiria técnicas além do escopo do trabalho, como Pattern Databases. Mesmo as implementações de referência da literatura (Korf, 1985) levam horas nas instâncias mais difíceis.
 
 **"O que são as instâncias que atingem LIMITE?"**
-> São instâncias cujo espaço de busca exige mais nós do que o limite definido (500 K para A*, 20 M para IDA*) — independente da profundidade da solução. Por exemplo, inst. 7 tem h₀=30 e já esgota o limite: a heurística é boa mas o espaço ainda é grande demais naquele orçamento. A solução existe — só precisaríamos de mais tempo ou de uma heurística mais forte (como Pattern Databases). São equivalentes aos benchmarks de Korf 1985.
+> São instâncias cujo espaço de busca exige mais nós do que o limite definido (500 K para A*, 50 M para IDA*) — independente da profundidade da solução. Por exemplo, inst. 7 tem h₀=30 e já esgota o limite: a heurística é boa mas o espaço ainda é grande demais naquele orçamento. A solução existe — só precisaríamos de mais tempo ou de uma heurística mais forte (como Pattern Databases). São equivalentes aos benchmarks de Korf 1985.
 
 **"Por que usaram uint64_t e não um array para o estado?"**
 > uint64_t é uma chave nativa do C++ — a função de hash padrão do unordered_map já funciona em O(1) sem overhead. Com array, precisaríamos de hash customizada. Além disso, 8 bytes por estado vs 9 ou 16 ints — 4× a 8× menos memória.
